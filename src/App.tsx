@@ -35,6 +35,13 @@ type IconName = "home" | "plan" | "calendar" | "book" | "spark" | "settings" | "
 
 const VIEW_LABELS: Record<View, string> = { dashboard: "Today", plan: "Study plan", calendar: "Calendar", subjects: "Subjects" };
 const VIEW_ICONS: Record<View, IconName> = { dashboard: "home", plan: "plan", calendar: "calendar", subjects: "book" };
+const MASCOT_IMAGES: Record<"hello" | "focus" | "reset" | "celebrate", string> = {
+  hello: "stitch-sparkle.png",
+  focus: "stitch-dance.png",
+  reset: "stitch-beach.png",
+  celebrate: "stitch-grin.png",
+};
+const ASSET_BASE = `${import.meta.env.BASE_URL}assets/`;
 
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
   const paths: Record<IconName, string> = {
@@ -270,7 +277,7 @@ function CompanionCard({ behind, reviewDue }: { behind: boolean; reviewDue: bool
 }
 
 function Mascot({ mood = "hello", mini = false }: { mood?: "hello" | "focus" | "reset" | "celebrate"; mini?: boolean }) {
-  return <div className={`mascot-wrap ${mini ? "mini" : ""}`} aria-label="A friendly original blue study companion"><div className="mascot-glow" /><svg className="mascot" viewBox="0 0 180 160" role="img"><path className="mascot-ear" d="M35 59C5 54 9 22 31 17c7 13 17 25 28 33" /><path className="mascot-ear right" d="M145 59c30-5 26-37 4-42-7 13-17 25-28 33" /><path className="mascot-body" d="M42 62c0-29 21-44 48-44s48 15 48 44v46c0 27-21 39-48 39s-48-12-48-39z" /><ellipse className="mascot-belly" cx="90" cy="110" rx="25" ry="22" /><circle className="mascot-eye" cx="70" cy="72" r="8" /><circle className="mascot-eye" cx="110" cy="72" r="8" /><circle className="mascot-eye-shine" cx="72" cy="69" r="2" /><circle className="mascot-eye-shine" cx="112" cy="69" r="2" /><path className="mascot-nose" d="M85 84q5-5 10 0" /><path className="mascot-smile" d={mood === "focus" ? "M76 95q14 3 28 0" : "M76 93q14 12 28 0"} /><path className="mascot-arm" d={mood === "celebrate" ? "M42 101c-19-16-22-26-14-32" : "M42 101c-15 7-21 15-13 25"} /><path className="mascot-arm right" d={mood === "celebrate" ? "M138 101c19-16 22-26 14-32" : "M138 101c15 7 21 15 13 25"} /><path className="mascot-foot" d="M62 143q-8 9-17 5M118 143q8 9 17 5" /></svg><div className="mascot-star">{mood === "celebrate" ? "✦ ✦" : "✦"}</div></div>;
+  return <div className={`mascot-wrap ${mini ? "mini" : ""}`} aria-label="A Stitch study companion"><div className="mascot-glow" /><img className="mascot-image" src={`${ASSET_BASE}${MASCOT_IMAGES[mood]}`} alt="Stitch cheering on the next study step" /><div className="mascot-star">{mood === "celebrate" ? "✦ ✦" : "✦"}</div></div>;
 }
 
 function StudyLoop() {
