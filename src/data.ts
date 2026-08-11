@@ -1,0 +1,240 @@
+import type {
+  AppState,
+  CalendarEvent,
+  ChapterCheckpoint,
+  StudyTask,
+  Subject,
+  SubjectCode,
+} from "./types";
+import { taskPriority } from "./planner";
+
+const CREATED_AT = "2026-08-11T08:00:00+02:00";
+
+export const subjects: Subject[] = [
+  {
+    code: "A311",
+    name: "Actuarial Risk Management",
+    shortName: "Risk management",
+    color: "yellow",
+    examDates: ["2026-10-01", "2026-10-02"],
+    examDurationMinutes: 180,
+    currentChapter: 0,
+    targetChapter: 0,
+    chapterLabel: "Two-paper revision",
+    description: "Keep the knowledge warm with weekly exam-style practice.",
+    progressNote: "Studied during the first six months; now in revision mode.",
+  },
+  {
+    code: "F102",
+    name: "Life Insurance Principles",
+    shortName: "Life insurance",
+    color: "blue",
+    examDates: ["2026-11-05"],
+    examDurationMinutes: 180,
+    currentChapter: 4,
+    targetChapter: 36,
+    chapterLabel: "Chapter progress",
+    description: "Build understanding first, then convert it into timed answers.",
+    progressNote: "Annotations are complete through chapter 4.",
+  },
+  {
+    code: "F108",
+    name: "Health, Social & Employee Benefits",
+    shortName: "Benefits",
+    color: "pink",
+    examDates: ["2026-11-15"],
+    examDurationMinutes: 180,
+    currentChapter: 8,
+    targetChapter: 23,
+    chapterLabel: "Chapter progress",
+    description: "Keep the core reading moving while protecting time for practice.",
+    progressNote: "Annotations are complete through chapter 8.",
+  },
+];
+
+function makeEvent(
+  id: string,
+  date: string,
+  kind: CalendarEvent["kind"],
+  title: string,
+  subjectCode?: SubjectCode,
+  detail?: string,
+  chapterRange?: string,
+  durationMinutes?: number,
+  fixed = false,
+): CalendarEvent {
+  return { id, date, kind, title, subjectCode, detail, chapterRange, durationMinutes, fixed };
+}
+
+const lectureEvents: CalendarEvent[] = [
+  makeEvent("f102-jul-13", "2026-07-13", "lecture", "Regular time", "F102", "Life assurance products", "Chapters 1-3"),
+  makeEvent("f102-jul-20", "2026-07-20", "lecture", "Regular time", "F102", "Health and care products", "Chapters 5-7"),
+  makeEvent("f102-jul-27", "2026-07-27", "lecture", "Regular time", "F102", "With-profits products and methods of distributing profits", "Chapters 8-10"),
+  makeEvent("f102-aug-03", "2026-08-03", "lecture", "Regular time", "F102", "Management of unit-linked contracts", "Chapters 4, 16, 17"),
+  makeEvent("f102-aug-17", "2026-08-17", "lecture", "Regular time", "F102", "Risks and product design", "Chapters 13-15, 20"),
+  makeEvent("f102-aug-24", "2026-08-24", "lecture", "Regular time", "F102", "Setting assumptions and embedded value", "Chapter 19 section 2, 21, 22"),
+  makeEvent("f102-aug-31", "2026-08-31", "lecture", "Regular time", "F102", "Reserves, capital requirements and investments", "Chapters 23, 24, 33"),
+  makeEvent("f102-sep-14", "2026-09-14", "lecture", "Regular time", "F102", "Data and models", "Chapters 18, 19, 32"),
+  makeEvent("f102-sep-28", "2026-09-28", "lecture", "Regular time", "F102", "Risk management, reinsurance and underwriting", "Chapters 29, 30, 31"),
+  makeEvent("f102-oct-05", "2026-10-05", "lecture", "Regular time", "F102", "Pricing for health and care", "Chapter 28"),
+  makeEvent("f102-oct-16", "2026-10-16", "lecture", "14:00-17:00", "F102", "Surrenders, alterations, guarantees and options", "Chapters 25-27"),
+  makeEvent("f102-oct-19", "2026-10-19", "lecture", "Regular time", "F102", "Monitoring experience and the big picture", "Chapters 33, 34-36"),
+  makeEvent("f108-jul-16", "2026-07-16", "lecture", "09:00-12:00", "F108", "Social security system and the role of the state", "Chapters 2-3", 180),
+  makeEvent("f108-jul-23", "2026-07-23", "lecture", "09:00-12:00", "F108", "The role of the employer and the regulatory, tax and professional environment", "Chapters 4-5", 180),
+  makeEvent("f108-jul-30", "2026-07-30", "lecture", "09:00-12:00", "F108", "The environment and social and employee benefits", "Chapters 6-7", 180),
+  makeEvent("f108-aug-06", "2026-08-06", "lecture", "09:00-12:00", "F108", "Health and care products and benefit design", "Chapters 8-9", 180),
+  makeEvent("f108-aug-13", "2026-08-13", "lecture", "09:00-12:00", "F108", "Morbidity risks, data, assumption setting and modelling", "Chapters 12-14", 180),
+  makeEvent("f108-aug-14", "2026-08-14", "lecture", "09:00-12:00", "F108", "Risks and mortality risks", "Chapters 10-11", 180),
+  makeEvent("f108-aug-27", "2026-08-27", "lecture", "09:00-12:00", "F108", "Investments", "Chapters 16-17", 180),
+  makeEvent("f108-sep-03", "2026-09-03", "lecture", "09:00-12:00", "F108", "Financing and funding; purposes, principles and users of valuations", "Chapters 18, 20", 180),
+  makeEvent("f108-sep-17", "2026-09-17", "lecture", "09:00-12:00", "F108", "Pricing", "Chapter 15", 180),
+  makeEvent("f108-oct-01", "2026-10-01", "lecture", "09:00-12:00", "F108", "Reserving in health and care", "Chapters 20, 22", 180),
+  makeEvent("f108-oct-08", "2026-10-08", "lecture", "09:00-12:00", "F108", "Actuarial funding methods and reserving for retirement funds (1)", "Chapter 21", 180),
+  makeEvent("f108-oct-15", "2026-10-15", "lecture", "09:00-12:00", "F108", "Actuarial funding methods and reserving for retirement funds (2)", "Chapter 21", 180),
+  makeEvent("f108-oct-22", "2026-10-22", "lecture", "09:00-12:00", "F108", "Risk management and monitoring experience", "Chapters 19, 23", 180),
+];
+
+const fixedEvents: CalendarEvent[] = [
+  makeEvent("f102-test-1", "2026-09-07", "test", "Test 1", "F102", "Lab to be confirmed", undefined, 180, true),
+  makeEvent("f108-test-1", "2026-09-10", "test", "Test 1", "F108", "Core reading test", undefined, 180, true),
+  makeEvent("a311-paper-1", "2026-10-01", "exam", "Paper 1", "A311", "Typed, closed-book paper", undefined, 180, true),
+  makeEvent("a311-paper-2", "2026-10-02", "exam", "Paper 2", "A311", "Typed, closed-book paper", undefined, 180, true),
+  makeEvent("f102-exam", "2026-11-05", "exam", "F102 exam", "F102", "Three-hour typed exam", undefined, 180, true),
+  makeEvent("f108-exam", "2026-11-15", "exam", "F108 exam", "F108", "Three-hour typed exam", undefined, 180, true),
+  makeEvent("f108-assignment-1", "2026-07-23", "assignment", "Take-home assignment 1", "F108", "Completed", "Chapters 4-5", undefined, true),
+  makeEvent("f102-assignment-1", "2026-08-03", "assignment", "Assignment 1", "F102", "Completed", "Chapters 4, 16, 17", undefined, true),
+  makeEvent("f108-assignment-2", "2026-10-01", "assignment", "Take-home assignment 2", "F108", "Due alongside the lecture block", "Chapters 20, 22", undefined, true),
+  makeEvent("f102-assignment-2", "2026-10-05", "assignment", "Assignment 2", "F102", "Due before lecture", "Chapter 28", undefined, true),
+];
+
+const checklistRows: Array<{ date: string; subjectCode: SubjectCode; title: string; detail: string; kind: StudyTask["kind"] }> = [
+  { date: "2026-08-02", subjectCode: "F102", title: "Prep chapters 4, 16, 17", detail: "Prepare the next discussion block.", kind: "learn" },
+  { date: "2026-08-02", subjectCode: "F108", title: "Prep chapters 8-9", detail: "Keep the annotation pass concise.", kind: "learn" },
+  { date: "2026-08-09", subjectCode: "F102", title: "Prep chapters 12-14", detail: "Catch the class milestone with a first pass.", kind: "learn" },
+  { date: "2026-08-09", subjectCode: "F108", title: "Prep chapters 10-11", detail: "Build a short checkpoint after reading.", kind: "learn" },
+  { date: "2026-08-16", subjectCode: "F102", title: "Prep chapters 13-15 and 20", detail: "Prioritise the examinable ideas first.", kind: "learn" },
+  { date: "2026-08-16", subjectCode: "F108", title: "Revise chapters 12-14", detail: "Recall before re-reading.", kind: "recall" },
+  { date: "2026-08-23", subjectCode: "F102", title: "Prep chapters 19 section 2, 21 and 22", detail: "Use focused notes, not a second textbook.", kind: "learn" },
+  { date: "2026-08-23", subjectCode: "F108", title: "Prep chapters 16-17", detail: "Capture the one concept that still feels fuzzy.", kind: "learn" },
+  { date: "2026-08-30", subjectCode: "F102", title: "Prep chapters 23, 24 and 33", detail: "Move toward the September test scope.", kind: "learn" },
+  { date: "2026-08-30", subjectCode: "F108", title: "Prep chapters 18 and 20", detail: "Review the chapter map before the detail.", kind: "learn" },
+  { date: "2026-09-06", subjectCode: "F102", title: "Review for Test 1", detail: "Do one timed question set.", kind: "practice" },
+  { date: "2026-09-06", subjectCode: "F108", title: "Review for Test 1", detail: "Recall key definitions without notes.", kind: "practice" },
+  { date: "2026-09-13", subjectCode: "F102", title: "Prep chapters 18, 19 and 32", detail: "Consolidate the testing gaps.", kind: "learn" },
+  { date: "2026-09-13", subjectCode: "F108", title: "Prep chapter 15", detail: "Create a short pricing checkpoint.", kind: "learn" },
+  { date: "2026-09-20", subjectCode: "F102", title: "Revise chapters 18, 19 and 32", detail: "Use active recall and error notes.", kind: "recall" },
+  { date: "2026-09-20", subjectCode: "F108", title: "Prep chapters 20 and 22 + TH2", detail: "Keep the assignment separate from core revision.", kind: "milestone" },
+  { date: "2026-09-27", subjectCode: "F102", title: "Prep chapters 29-31", detail: "Finish the last major chapter block.", kind: "learn" },
+  { date: "2026-09-27", subjectCode: "F108", title: "Review chapters 19 and 23", detail: "Begin exam-style consolidation.", kind: "recall" },
+  { date: "2026-10-04", subjectCode: "F102", title: "Prep chapter 28 + assignment 2", detail: "Pair the reading with one applied question.", kind: "milestone" },
+  { date: "2026-10-04", subjectCode: "F108", title: "Prep chapter 21", detail: "Build the final chapter checkpoint.", kind: "learn" },
+  { date: "2026-10-11", subjectCode: "F102", title: "Revise chapters 25-27", detail: "Practice under a short time limit.", kind: "practice" },
+  { date: "2026-10-11", subjectCode: "F108", title: "Revise chapters 19 and 23", detail: "Turn weak areas into questions.", kind: "recall" },
+  { date: "2026-10-18", subjectCode: "F102", title: "Revise chapters 33-36", detail: "Complete the first full-scope pass.", kind: "recall" },
+  { date: "2026-10-18", subjectCode: "F108", title: "Past-paper review", detail: "Mark and log the top three errors.", kind: "error-review" },
+];
+
+function makeTask(
+  id: string,
+  subjectCode: SubjectCode,
+  kind: StudyTask["kind"],
+  title: string,
+  dueDate: string,
+  estimatedMinutes: number,
+  detail: string,
+  fixed = false,
+  sourceEventId?: string,
+): StudyTask {
+  return {
+    id,
+    subjectCode,
+    kind,
+    title,
+    detail,
+    dueDate,
+    estimatedMinutes,
+    status: "todo",
+    priority: 1,
+    fixed,
+    sourceEventId,
+    createdAt: CREATED_AT,
+  };
+}
+
+const checklistEvents: CalendarEvent[] = checklistRows.map((row, index) =>
+  makeEvent(`checklist-${index + 1}`, row.date, "checklist", row.title, row.subjectCode, row.detail),
+);
+
+const practiceFridays = [
+  "2026-08-14",
+  "2026-08-21",
+  "2026-08-28",
+  "2026-09-04",
+  "2026-09-11",
+  "2026-09-18",
+  "2026-09-25",
+].map((date, index) => makeEvent(`a311-practice-${index + 1}`, date, "practice", "A311 past-paper block", "A311", "Three hours: attempt, mark, and log the top errors.", undefined, 180, true));
+
+const checklistTasks = checklistRows.map((row, index) =>
+  makeTask(
+    `checklist-task-${index + 1}`,
+    row.subjectCode,
+    row.kind,
+    row.title,
+    row.date,
+    row.kind === "practice" ? 120 : 75,
+    row.detail,
+    false,
+    `checklist-${index + 1}`,
+  ),
+);
+
+const immediateTasks: StudyTask[] = [
+  makeTask("today-f102-catchup", "F102", "learn", "F102 catch-up: chapters 5-7", "2026-08-11", 75, "Move forward with a first pass; leave a small checkpoint, not a long summary."),
+  makeTask("today-f108-catchup", "F108", "learn", "F108 catch-up: chapters 10-11", "2026-08-11", 75, "Focus on the concepts needed before the next lecture block."),
+  makeTask("today-a311-review", "A311", "error-review", "A311: review the last paper’s top three errors", "2026-08-11", 45, "Keep the revision warm without taking the whole day from the F100s."),
+  makeTask("tomorrow-f102-recall", "F102", "recall", "F102: retrieve chapters 1-4 from memory", "2026-08-12", 30, "Use the printed notes only after the first recall attempt."),
+  makeTask("tomorrow-f108-checkpoint", "F108", "recall", "F108: write a five-minute chapter checkpoint", "2026-08-12", 25, "Capture key ideas, formulas/terms, one uncertainty, and one exam question."),
+];
+
+const fixedTasks = practiceFridays.map((event) =>
+  makeTask(
+    `task-${event.id}`,
+    "A311",
+    "practice",
+    event.title,
+    event.date,
+    event.durationMinutes ?? 180,
+    event.detail ?? "Attempt and mark a past paper.",
+    true,
+    event.id,
+  ),
+);
+
+export const seedState: AppState = {
+  version: 1,
+  subjects,
+  events: [...lectureEvents, ...fixedEvents, ...checklistEvents, ...practiceFridays],
+  tasks: [...immediateTasks, ...checklistTasks, ...fixedTasks].map((task) => ({
+    ...task,
+    priority: taskPriority(task, subjects.find((subject) => subject.code === task.subjectCode)!, "2026-08-11"),
+  })),
+  sessions: [],
+  checkpoints: [],
+  settings: {
+    userName: "study buddy",
+    theme: "light",
+  },
+  updatedAt: CREATED_AT,
+};
+
+export const emptyCheckpoint = (subjectCode: SubjectCode, chapterLabel: string): ChapterCheckpoint => ({
+  id: `${subjectCode}-${chapterLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+  subjectCode,
+  chapterLabel,
+  keyIdeas: "",
+  formulas: "",
+  uncertainty: "",
+  examQuestion: "",
+  updatedAt: new Date().toISOString(),
+});
