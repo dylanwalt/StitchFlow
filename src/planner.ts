@@ -1,12 +1,18 @@
 import type {
   AppState,
+  Confidence,
   PlannerSummary,
+  StudyPhase,
   StudyTask,
   Subject,
   SubjectCode,
+  SubjectProgress,
+  TaskImpact,
+  TaskKind,
 } from "./types";
 
 export const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+export const DAILY_SOFT_CAP_MINUTES = 150;
 
 export function toISODate(date: Date): string {
   const year = date.getFullYear();
@@ -32,10 +38,7 @@ export function daysUntil(examDate: string, today = toISODate(new Date())): numb
 }
 
 export function formatShortDate(value: string): string {
-  return new Intl.DateTimeFormat("en-ZA", {
-    day: "numeric",
-    month: "short",
-  }).format(parseISODate(value));
+  return new Intl.DateTimeFormat("en-ZA", { day: "numeric", month: "short" }).format(parseISODate(value));
 }
 
 export function formatLongDate(value: string): string {
@@ -47,32 +50,109 @@ export function formatLongDate(value: string): string {
   }).format(parseISODate(value));
 }
 
+export function phaseForKind(kind: TaskKind): StudyPhase {
+  if (kind === "learn") return "understand";
+  if (kind === "recall") return "retrieve";
+  if (kind === "practice") return "practice";
+  if (kind === "error-review") return "review";
+  return "understand";
+}
+
+export function defaultImpact(kind: TaskKind): TaskImpact {
+  switch (kind) {
+    case "learn":
+      return { coverage: 1, retrieval: 0, practice: 0, description: "Adds one coverage block to the subject runway." };
+    case "recall":
+      return { coverage: 0, retrieval: 1, practice: 0, description: "Strengthens retrieval: recalling before looking." };
+    case "practice":
+      return { coverage: 0, retrieval: 1, practice: 1, description: "Builds timed exam practice and exposes gaps." };
+    case "error-review":
+      return { coverage: 0, retrieval: 1, practice: 1, description: "Turns past mistakes into the next useful questions." };
+    default:
+      return { coverage: 1, retrieval: 0, practice: 0, description: "Moves the next milestone into reach." };
+  }
+}
+
 export function taskPriority(
   task: StudyTask,
   subject: Subject,
   today = toISODate(new Date()),
+  gap = Math.max(0, subject.targetChapter - subject.currentChapter),
 ): number {
-  const urgency = Math.max(0, 30 - daysUntil(subject.examDates[0], today));
-  const overdue = task.dueDate < today ? 28 : 0;
-  const dueSoon = Math.max(0, 14 - daysUntil(task.dueDate, today)) * 2;
-  const kindWeight = task.kind === "practice" ? 8 : task.kind === "error-review" ? 7 : 3;
+  const days = Math.max(0, daysUntil(subject.examDates[0], today));
+  const urgency = Math.max(0, 45 - days / 2);
+  const overdue = task.dueDate < today ? 24 : 0;
+  const dueSoon = Math.max(0, 12 - Math.max(0, daysUntil(task.dueDate, today))) * 2;
+  const gapPressure = subject.targetChapter > 0 ? (gap / subject.targetChapter) * 24 : 0;
+  const kindWeight = task.kind === "practice" ? 14 : task.kind === "error-review" ? 12 : task.kind === "recall" ? 9 : 5;
   const fixedWeight = task.fixed ? 8 : 0;
-  return Math.round(urgency + overdue + dueSoon + kindWeight + fixedWeight);
+  return Math.round(urgency + overdue + dueSoon + gapPressure + kindWeight + fixedWeight);
+}
+
+function completedCoverageUnits(subject: Subject, tasks: StudyTask[]): number {
+  return subject.currentChapter + tasks
+    .filter((task) => task.subjectCode === subject.code && task.status === "done" && !task.archived)
+    .reduce((total, task) => total + (task.coverageUnits ?? 0), 0);
+}
+
+function completedCount(tasks: StudyTask[], predicate: (task: StudyTask) => boolean): number {
+  return tasks.filter((task) => task.status === "done" && !task.archived && predicate(task)).length;
+}
+
+export function getSubjectProgress(subject: Subject, tasks: StudyTask[], sessions: AppState["sessions"] = []): SubjectProgress {
+  const subjectTasks = tasks.filter((task) => task.subjectCode === subject.code);
+  const subjectSessions = sessions.filter((session) => session.subjectCode === subject.code);
+  const learnTasks = subjectTasks.filter((task) => (task.coverageUnits ?? 0) > 0 && !task.archived);
+  const retrievalTasks = subjectTasks.filter((task) => task.kind === "recall" || task.kind === "practice" || task.kind === "error-review");
+  const practiceTasks = subjectTasks.filter((task) => task.kind === "practice" || task.kind === "error-review");
+  const plannedBlocks = subjectTasks.filter((task) => !task.archived && task.status !== "done").length + subjectTasks.filter((task) => !task.archived && task.status === "done").length;
+  const completedBlocks = subjectTasks.filter((task) => task.status === "done" && !task.archived).length + subjectSessions.length;
+
+  if (subject.code === "A311") {
+    const plannedPapers = Math.max(1, subjectTasks.filter((task) => task.kind === "practice" && task.fixed).length);
+    const papersDone = subjectTasks.filter((task) => task.kind === "practice" && task.status === "done").length + subjectSessions.filter((session) => session.kind === "past-paper").length;
+    return {
+      subjectCode: subject.code,
+      coveragePercent: Math.min(100, Math.round((papersDone / plannedPapers) * 100)),
+      coverageUnits: papersDone,
+      targetUnits: plannedPapers,
+      retrievalPercent: Math.min(100, Math.round((papersDone / plannedPapers) * 100)),
+      practicePercent: Math.min(100, Math.round((papersDone / plannedPapers) * 100)),
+      completedBlocks,
+      plannedBlocks,
+      label: `${papersDone} paper block${papersDone === 1 ? "" : "s"} logged`,
+    };
+  }
+
+  const coverageUnits = Math.min(subject.targetChapter, completedCoverageUnits(subject, tasks));
+  return {
+    subjectCode: subject.code,
+    coveragePercent: subject.targetChapter ? Math.round((coverageUnits / subject.targetChapter) * 100) : 0,
+    coverageUnits,
+    targetUnits: subject.targetChapter,
+    retrievalPercent: retrievalTasks.length ? Math.round((completedCount(subjectTasks, (task) => retrievalTasks.includes(task)) / retrievalTasks.length) * 100) : 0,
+    practicePercent: practiceTasks.length ? Math.round((completedCount(subjectTasks, (task) => practiceTasks.includes(task)) / practiceTasks.length) * 100) : 0,
+    completedBlocks,
+    plannedBlocks,
+    label: `Through chapter ${coverageUnits} of ${subject.targetChapter}`,
+  };
 }
 
 export function getSubjectSummary(
   subject: Subject,
   today = toISODate(new Date()),
+  tasks: StudyTask[] = [],
 ): PlannerSummary {
   const daysToExam = Math.max(0, daysUntil(subject.examDates[0], today));
-  const gap = Math.max(0, subject.targetChapter - subject.currentChapter);
-  const behind = gap >= 4 && daysToExam < 100;
+  const progress = getSubjectProgress(subject, tasks);
+  const gap = subject.code === "A311" ? 0 : Math.max(0, progress.targetUnits - progress.coverageUnits);
+  const behind = subject.code !== "A311" && gap >= 4 && daysToExam < 100;
   return {
     subjectCode: subject.code,
     behind,
     gap,
     daysToExam,
-    label: behind ? `${gap} chapter gap` : "on a steady path",
+    label: behind ? `${gap} chapter gap` : subject.code === "A311" ? "revision mode" : "on a steady path",
   };
 }
 
@@ -83,62 +163,71 @@ function getNextPlanningDate(candidate: string, occupied: Set<string>): string {
 }
 
 /**
- * Rebalances unfinished, non-fixed work without rewriting completed tasks or fixed events.
- * The algorithm deliberately prioritizes urgency and practice, while keeping the result visible and editable.
+ * Rebalances unfinished, movable work around fixed events and a soft daily capacity.
+ * It uses the actual subject gap, exam urgency, and task phase; it never moves completed work.
  */
-export function replanTasks(
-  state: AppState,
-  today = toISODate(new Date()),
-): StudyTask[] {
-  const subjects = new Map<SubjectCode, Subject>(
-    state.subjects.map((subject) => [subject.code, subject]),
-  );
-  const occupied = new Set(
-    state.tasks
-      .filter((task) => task.fixed && task.status !== "done")
-      .map((task) => task.dueDate),
-  );
-
+export function replanTasks(state: AppState, today = toISODate(new Date())): StudyTask[] {
+  const subjects = new Map<SubjectCode, Subject>(state.subjects.map((subject) => [subject.code, subject]));
+  const occupied = new Set([
+    ...state.events.filter((event) => event.fixed).map((event) => event.date),
+    ...state.tasks.filter((task) => task.fixed && task.status !== "done").map((task) => task.dueDate),
+  ]);
+  const gaps = new Map(state.subjects.map((subject) => [subject.code, getSubjectSummary(subject, today, state.tasks).gap]));
   const movable = state.tasks
-    .filter((task) => task.status !== "done" && !task.fixed)
-    .map((task) => ({
-      ...task,
-      priority: taskPriority(task, subjects.get(task.subjectCode)!, today),
-    }))
+    .filter((task) => task.status !== "done" && !task.fixed && !task.archived)
+    .map((task) => {
+      const subject = subjects.get(task.subjectCode)!;
+      return { ...task, priority: taskPriority(task, subject, today, gaps.get(task.subjectCode) ?? 0) };
+    })
     .sort((a, b) => b.priority - a.priority || a.dueDate.localeCompare(b.dueDate));
 
   const assignments = new Map<string, string>();
-  const dailyCount = new Map<string, number>();
+  const dailyMinutes = new Map<string, number>();
   let cursor = today;
 
   for (const task of movable) {
-    let date = getNextPlanningDate(cursor, occupied);
-    while ((dailyCount.get(date) ?? 0) >= 3) {
-      cursor = addDays(date, 1);
-      date = getNextPlanningDate(cursor, occupied);
+    const subject = subjects.get(task.subjectCode)!;
+    const deadline = addDays(subject.examDates[0], -1);
+    let date = getNextPlanningDate(task.dueDate < today ? today : cursor, occupied);
+    let guard = 0;
+    while (
+      guard < 120 &&
+      (date > deadline || ((dailyMinutes.get(date) ?? 0) > 0 && (dailyMinutes.get(date) ?? 0) + task.estimatedMinutes > DAILY_SOFT_CAP_MINUTES))
+    ) {
+      date = getNextPlanningDate(addDays(date, 1), occupied);
+      guard += 1;
     }
+    if (date > deadline) date = deadline;
     assignments.set(task.id, date);
-    dailyCount.set(date, (dailyCount.get(date) ?? 0) + 1);
+    dailyMinutes.set(date, (dailyMinutes.get(date) ?? 0) + task.estimatedMinutes);
     cursor = date;
   }
 
   return state.tasks.map((task) => {
     const nextDate = assignments.get(task.id);
-    return nextDate
-      ? { ...task, dueDate: nextDate, status: "todo", priority: taskPriority(task, subjects.get(task.subjectCode)!, today) }
-      : task;
+    if (!nextDate) return task;
+    const subject = subjects.get(task.subjectCode)!;
+    return {
+      ...task,
+      dueDate: nextDate,
+      status: "todo",
+      priority: taskPriority(task, subject, today, gaps.get(task.subjectCode) ?? 0),
+    };
   });
 }
 
 export function countCompleted(tasks: StudyTask[]): number {
-  return tasks.filter((task) => task.status === "done").length;
+  return tasks.filter((task) => task.status === "done" && !task.archived).length;
 }
 
-export function progressPercent(subject: Subject): number {
-  if (!subject.targetChapter) return 0;
-  return Math.min(100, Math.round((subject.currentChapter / subject.targetChapter) * 100));
+export function progressPercent(subject: Subject, tasks: StudyTask[] = [], sessions: AppState["sessions"] = []): number {
+  return getSubjectProgress(subject, tasks, sessions).coveragePercent;
 }
 
 export function isTaskOverdue(task: StudyTask, today = toISODate(new Date())): boolean {
-  return task.status !== "done" && task.dueDate < today;
+  return task.status !== "done" && !task.archived && task.dueDate < today;
+}
+
+export function reviewInterval(confidence: Confidence): number {
+  return confidence === "hard" ? 1 : confidence === "okay" ? 4 : 8;
 }

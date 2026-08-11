@@ -9,6 +9,17 @@ export type TaskKind =
 
 export type TaskStatus = "todo" | "done" | "snoozed";
 
+export type StudyPhase = "understand" | "retrieve" | "practice" | "review";
+export type Confidence = "hard" | "okay" | "solid";
+export type SessionKind = "focus" | "past-paper";
+
+export interface TaskImpact {
+  coverage: number;
+  retrieval: number;
+  practice: number;
+  description: string;
+}
+
 export type CalendarEventKind =
   | "lecture"
   | "test"
@@ -53,9 +64,17 @@ export interface StudyTask {
   estimatedMinutes: number;
   status: TaskStatus;
   priority: number;
+  phase: StudyPhase;
+  impact: TaskImpact;
+  coverageUnits?: number;
+  paperName?: string;
+  archived?: boolean;
   sourceEventId?: string;
   fixed?: boolean;
   createdAt: string;
+  lastCompletedAt?: string;
+  revisitDate?: string;
+  confidence?: Confidence;
 }
 
 export interface StudySession {
@@ -63,8 +82,16 @@ export interface StudySession {
   date: string;
   subjectCode: SubjectCode;
   durationMinutes: number;
+  kind: SessionKind;
   taskId?: string;
   note?: string;
+  paperName?: string;
+  paperDate?: string;
+  score?: number;
+  attemptedMinutes?: number;
+  errorCount?: number;
+  nextAction?: string;
+  confidence?: Confidence;
 }
 
 export interface ChapterCheckpoint {
@@ -102,3 +129,17 @@ export interface PlannerSummary {
   daysToExam: number;
   label: string;
 }
+
+export interface SubjectProgress {
+  subjectCode: SubjectCode;
+  coveragePercent: number;
+  coverageUnits: number;
+  targetUnits: number;
+  retrievalPercent: number;
+  practicePercent: number;
+  completedBlocks: number;
+  plannedBlocks: number;
+  label: string;
+}
+
+export type StudySessionDraft = Omit<StudySession, "id" | "date">;

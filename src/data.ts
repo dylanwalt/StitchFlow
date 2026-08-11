@@ -6,7 +6,7 @@ import type {
   Subject,
   SubjectCode,
 } from "./types";
-import { taskPriority } from "./planner";
+import { defaultImpact, phaseForKind, taskPriority } from "./planner";
 
 const CREATED_AT = "2026-08-11T08:00:00+02:00";
 
@@ -144,6 +144,9 @@ function makeTask(
   detail: string,
   fixed = false,
   sourceEventId?: string,
+  coverageUnits = 0,
+  paperName?: string,
+  archived = false,
 ): StudyTask {
   return {
     id,
@@ -155,6 +158,11 @@ function makeTask(
     estimatedMinutes,
     status: "todo",
     priority: 1,
+    phase: phaseForKind(kind),
+    impact: defaultImpact(kind),
+    coverageUnits,
+    paperName,
+    archived,
     fixed,
     sourceEventId,
     createdAt: CREATED_AT,
@@ -186,15 +194,18 @@ const checklistTasks = checklistRows.map((row, index) =>
     row.detail,
     false,
     `checklist-${index + 1}`,
+    row.kind === "learn" ? 2 : 0,
+    undefined,
+    row.date < "2026-08-11",
   ),
 );
 
 const immediateTasks: StudyTask[] = [
-  makeTask("today-f102-catchup", "F102", "learn", "F102 catch-up: chapters 5-7", "2026-08-11", 75, "Move forward with a first pass; leave a small checkpoint, not a long summary."),
-  makeTask("today-f108-catchup", "F108", "learn", "F108 catch-up: chapters 10-11", "2026-08-11", 75, "Focus on the concepts needed before the next lecture block."),
-  makeTask("today-a311-review", "A311", "error-review", "A311: review the last paper’s top three errors", "2026-08-11", 45, "Keep the revision warm without taking the whole day from the F100s."),
-  makeTask("tomorrow-f102-recall", "F102", "recall", "F102: retrieve chapters 1-4 from memory", "2026-08-12", 30, "Use the printed notes only after the first recall attempt."),
-  makeTask("tomorrow-f108-checkpoint", "F108", "recall", "F108: write a five-minute chapter checkpoint", "2026-08-12", 25, "Capture key ideas, formulas/terms, one uncertainty, and one exam question."),
+  makeTask("today-f102-catchup", "F102", "learn", "F102 catch-up: chapters 5-7", "2026-08-11", 75, "First pass only: map the idea, answer the within-chapter question, and leave one short checkpoint. Do not rewrite the chapter.", false, undefined, 3),
+  makeTask("today-f108-catchup", "F108", "learn", "F108 catch-up: chapters 10-11", "2026-08-11", 75, "First pass only: understand the map, mark one uncertainty, and move on before annotations become a second textbook.", false, undefined, 2),
+  makeTask("today-a311-review", "A311", "error-review", "A311: review the last paper’s top three errors", "2026-08-11", 45, "Re-answer the three errors from memory, then write the rule or trigger that would prevent each one next time."),
+  makeTask("tomorrow-f102-recall", "F102", "recall", "F102: retrieve chapters 1-4 from memory", "2026-08-12", 30, "Close the notes first. Write the structure and key formulas, then check only what you missed."),
+  makeTask("tomorrow-f108-checkpoint", "F108", "recall", "F108: write a five-minute chapter checkpoint", "2026-08-12", 25, "Capture key ideas, formulas or terms, one uncertainty, and one exam-style question."),
 ];
 
 const fixedTasks = practiceFridays.map((event) =>
@@ -211,11 +222,20 @@ const fixedTasks = practiceFridays.map((event) =>
   ),
 );
 
+const pastPaperTasks: StudyTask[] = [
+  makeTask("f102-paper-1", "F102", "practice", "F102 past paper 1: timed attempt", "2026-10-22", 180, "Use an official ASSA paper. Attempt under exam conditions, mark it, and log only the top three errors.", false, undefined, 0, "F102 official past paper 1"),
+  makeTask("f102-paper-2", "F102", "practice", "F102 past paper 2: timed attempt", "2026-10-29", 180, "Attempt first, then mark with the official solutions or your notes. Record the topics that cost time.", false, undefined, 0, "F102 official past paper 2"),
+  makeTask("f102-paper-3", "F102", "practice", "F102 past paper 3: targeted re-attempt", "2026-11-03", 150, "Re-attempt the questions that were slow or wrong. Finish with a short confidence check.", false, undefined, 0, "F102 official past paper 3"),
+  makeTask("f108-paper-1", "F108", "practice", "F108 past paper 1: timed attempt", "2026-10-30", 180, "Use an official ASSA paper. Attempt, mark, and keep the errors that should become retrieval questions.", false, undefined, 0, "F108 official past paper 1"),
+  makeTask("f108-paper-2", "F108", "practice", "F108 past paper 2: timed attempt", "2026-11-06", 180, "Attempt under time pressure, then identify the two topics that deserve the next review block.", false, undefined, 0, "F108 official past paper 2"),
+  makeTask("f108-paper-3", "F108", "practice", "F108 past paper 3: final targeted paper", "2026-11-12", 150, "Keep this final paper focused: practise the weak areas and protect rest before exam day.", false, undefined, 0, "F108 official past paper 3"),
+];
+
 export const seedState: AppState = {
-  version: 1,
+  version: 2,
   subjects,
   events: [...lectureEvents, ...fixedEvents, ...checklistEvents, ...practiceFridays],
-  tasks: [...immediateTasks, ...checklistTasks, ...fixedTasks].map((task) => ({
+  tasks: [...immediateTasks, ...checklistTasks, ...fixedTasks, ...pastPaperTasks].map((task) => ({
     ...task,
     priority: taskPriority(task, subjects.find((subject) => subject.code === task.subjectCode)!, "2026-08-11"),
   })),
