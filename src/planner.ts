@@ -112,6 +112,37 @@ function completedCount(tasks: StudyTask[], predicate: (task: StudyTask) => bool
   return tasks.filter((task) => task.status === "done" && !task.archived && predicate(task)).length;
 }
 
+function chapterNumbersFromRange(value: string): number[] {
+  const cleaned = value.replace(/sections?\s+\d+/gi, "");
+  const numbers: number[] = [];
+  for (const token of cleaned.match(/\d+\s*-\s*\d+|\d+/g) ?? []) {
+    const range = token.split("-").map((part) => Number(part.trim()));
+    if (range.length === 2) {
+      const [start, end] = range;
+      for (let chapter = Math.min(start, end); chapter <= Math.max(start, end); chapter += 1) numbers.push(chapter);
+    } else if (range[0] > 0) {
+      numbers.push(range[0]);
+    }
+  }
+  return numbers;
+}
+
+function scheduledChapterNumbers(subjectCode: SubjectCode, today: string, events: AppState["events"]): number[] {
+  return Array.from(new Set(events
+    .filter((event) => event.subjectCode === subjectCode && event.kind === "lecture" && event.date <= today && event.chapterRange)
+    .flatMap((event) => chapterNumbersFromRange(event.chapterRange!)))).sort((a, b) => a - b);
+}
+
+function weeksOfScheduledCoverage(subjectCode: SubjectCode, today: string, events: AppState["events"], expectedUnits: number): number {
+  if (!expectedUnits) return 0;
+  const dates = events
+    .filter((event) => event.subjectCode === subjectCode && event.kind === "lecture" && event.date <= today && event.chapterRange)
+    .map((event) => event.date)
+    .sort();
+  const spanWeeks = dates.length > 1 ? Math.max(1, Math.ceil((parseISODate(dates[dates.length - 1]).getTime() - parseISODate(dates[0]).getTime()) / 86_400_000 / 7) + 1) : 1;
+  return Math.max(1, Math.ceil(expectedUnits / spanWeeks));
+}
+
 export function getSubjectProgress(subject: Subject, tasks: StudyTask[], sessions: AppState["sessions"] = [], chapters: ChapterProgress[] = []): SubjectProgress {
   const subjectTasks = tasks.filter((task) => task.subjectCode === subject.code);
   const subjectSessions = sessions.filter((session) => session.subjectCode === subject.code);
@@ -171,17 +202,32 @@ export function getSubjectSummary(
   today = toISODate(new Date()),
   tasks: StudyTask[] = [],
   chapters: ChapterProgress[] = [],
+  events: AppState["events"] = [],
 ): PlannerSummary {
   const daysToExam = Math.max(0, daysUntil(subject.examDates[0], today));
   const progress = getSubjectProgress(subject, tasks, [], chapters);
-  const gap = subject.code === "A311" ? 0 : Math.max(0, progress.targetUnits - progress.coverageUnits);
-  const behind = subject.code !== "A311" && gap >= 4 && daysToExam < 100;
+  const scheduled = subject.code === "A311" ? [] : scheduledChapterNumbers(subject.code, today, events);
+  const expectedUnits = scheduled.length > 0 ? scheduled.length : progress.targetUnits;
+  const delta = progress.coverageUnits - expectedUnits;
+  const gap = subject.code === "A311" ? 0 : Math.max(0, -delta);
+  const aheadBy = subject.code === "A311" ? 0 : Math.max(0, delta);
+  const status = subject.code === "A311"
+    ? "on-track"
+    : scheduled.length > 0
+      ? delta >= 2 ? "ahead" : delta <= -2 ? "behind" : "on-track"
+      : gap >= 4 && daysToExam < 100 ? "behind" : "on-track";
+  const behind = status === "behind";
+  const weeklyCoverage = weeksOfScheduledCoverage(subject.code, today, events, scheduled.length);
   return {
     subjectCode: subject.code,
+    status,
     behind,
     gap,
+    aheadBy,
+    expectedUnits,
+    weeksBehind: behind ? Math.max(1, Math.ceil(gap / weeklyCoverage)) : 0,
     daysToExam,
-    label: behind ? `${gap} chapter gap` : subject.code === "A311" ? "revision mode" : "on a steady path",
+    label: subject.code === "A311" ? "revision mode" : status === "behind" ? `${gap} chapters behind the lecture runway` : status === "ahead" ? `${aheadBy} chapters ahead of the lecture runway` : "on track with the lecture runway",
   };
 }
 
@@ -201,7 +247,7 @@ export function replanTasks(state: AppState, today = toISODate(new Date())): Stu
     ...state.events.filter((event) => event.fixed).map((event) => event.date),
     ...state.tasks.filter((task) => task.fixed && task.status !== "done").map((task) => task.dueDate),
   ]);
-  const gaps = new Map(state.subjects.map((subject) => [subject.code, getSubjectSummary(subject, today, state.tasks, state.chapters).gap]));
+  const gaps = new Map(state.subjects.map((subject) => [subject.code, getSubjectSummary(subject, today, state.tasks, state.chapters, state.events).gap]));
   const movable = state.tasks
     .filter((task) => task.status !== "done" && !task.fixed && !task.archived)
     .map((task) => {

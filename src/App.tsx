@@ -28,6 +28,7 @@ import type {
   Subject,
   SubjectCode,
   TaskCompletionPercent,
+  PlannerSummary,
 } from "./types";
 
 type View = "dashboard" | "plan" | "calendar" | "subjects";
@@ -257,7 +258,8 @@ function Dashboard({ state, today, setView, completeTask, setTaskProgress, snooz
   const weekStart = addDays(today, -6);
   const weekSessions = state.sessions.filter((session) => session.date >= weekStart && session.date <= today);
   const weekMinutes = weekSessions.reduce((total, session) => total + session.durationMinutes, 0);
-  const behind = state.subjects.map((subject) => getSubjectSummary(subject, today, state.tasks, state.chapters)).filter((summary) => summary.behind);
+  const scheduleSummaries = state.subjects.map((subject) => getSubjectSummary(subject, today, state.tasks, state.chapters, state.events));
+  const behind = scheduleSummaries.filter((summary) => summary.behind);
 
   return <div className="page dashboard-page">
     <section className="welcome-row"><div><p className="eyebrow">{formatLongDate(today)}</p><h1>Let&apos;s find your <em>flow</em>.</h1><p className="lede">A calm cockpit for the next useful block, not the whole mountain.</p></div><button className="button secondary-button" onClick={() => setView("plan")}><Icon name="play" size={15} /> Start a focus block</button></section>
@@ -266,9 +268,17 @@ function Dashboard({ state, today, setView, completeTask, setTaskProgress, snooz
       <StudyLoop />
       <section className="section-block"><div className="section-heading"><div><p className="eyebrow">Right now</p><h2>Today&apos;s gentle shortlist</h2></div><button className="text-button" onClick={() => setView("plan")}>Open full plan <Icon name="arrow" size={15} /></button></div><p className="section-explainer">Each block has a job. Finish one and you add a visible piece to the subject&apos;s study path.</p><div className="task-stack">{topTasks.map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={completeTask} onProgress={setTaskProgress} onSnooze={snoozeTask} expanded />)}{topTasks.length === 0 && <EmptyState title="You&apos;re all clear for today." detail="Use the calendar to choose the next small step." />}</div></section>
       {reviewDue.length > 0 && <ReviewQueue tasks={reviewDue} onRevisit={revisitTask} onReview={reviewTask} />}
-    </div><aside className="dashboard-side"><ExamCountdowns subjects={state.subjects} today={today} /><WeeklyPulses state={state} today={today} /><section className="mini-card momentum-card"><div className="card-kicker"><span>THIS WEEK</span><Icon name="spark" size={15} /></div><div className="momentum-number">{weekMinutes}<small> min</small></div><p className="muted">{countCompleted(state.tasks)} blocks completed overall · {weekSessions.length} focus sessions this week</p><div className="week-bars" aria-label="Study sessions in the last seven days">{Array.from({ length: 7 }, (_, index) => { const date = addDays(today, index - 6); const minutes = state.sessions.filter((session) => session.date === date).reduce((sum, session) => sum + session.durationMinutes, 0); return <div key={date} className="bar-day"><div className="bar-track"><span style={{ height: `${Math.min(100, Math.max(8, minutes / 2))}%` }} /></div><small>{new Intl.DateTimeFormat("en-ZA", { weekday: "narrow" }).format(new Date(`${date}T12:00:00`))}</small></div>; })}</div></section><section className="mini-card nudge-card"><div className="nudge-icon"><Icon name="heart" size={17} /></div><div><strong>Choose your energy</strong><p>Low energy: do the first block only. More space: add a recall or practice block. There is no daily quota.</p></div></section>{behind.length > 0 && <section className="behind-card"><div className="behind-icon">↗</div><div><strong>Some ground to cover</strong><p>{behind.map((item) => `${item.subjectCode}: ${item.gap} chapters`).join(" · ")}</p><button className="text-button" onClick={replan}>Rebalance my plan <Icon name="arrow" size={14} /></button></div></section>}</aside></section>
+    </div><aside className="dashboard-side"><ExamCountdowns subjects={state.subjects} today={today} /><WeeklyPulses state={state} today={today} /><ScheduleStatusCard summaries={scheduleSummaries} replan={replan} /><section className="mini-card momentum-card"><div className="card-kicker"><span>THIS WEEK</span><Icon name="spark" size={15} /></div><div className="momentum-number">{weekMinutes}<small> min</small></div><p className="muted">{countCompleted(state.tasks)} blocks completed overall · {weekSessions.length} focus sessions this week</p><div className="week-bars" aria-label="Study sessions in the last seven days">{Array.from({ length: 7 }, (_, index) => { const date = addDays(today, index - 6); const minutes = state.sessions.filter((session) => session.date === date).reduce((sum, session) => sum + session.durationMinutes, 0); return <div key={date} className="bar-day"><div className="bar-track"><span style={{ height: `${Math.min(100, Math.max(8, minutes / 2))}%` }} /></div><small>{new Intl.DateTimeFormat("en-ZA", { weekday: "narrow" }).format(new Date(`${date}T12:00:00`))}</small></div>; })}</div></section><section className="mini-card nudge-card"><div className="nudge-icon"><Icon name="heart" size={17} /></div><div><strong>Choose your energy</strong><p>Low energy: do the first block only. More space: add a recall or practice block. There is no daily quota.</p></div></section></aside></section>
     <section className="section-block subject-overview"><div className="section-heading"><div><p className="eyebrow">The bigger picture</p><h2>Three exams, one clear path</h2></div><button className="text-button" onClick={() => setView("subjects")}>View subjects <Icon name="arrow" size={15} /></button></div><div className="subject-grid">{state.subjects.map((subject) => <SubjectProgress key={subject.code} subject={subject} state={state} today={today} />)}</div></section>
   </div>;
+}
+
+function ScheduleStatusCard({ summaries, replan }: { summaries: PlannerSummary[]; replan: () => void }) {
+  const behind = summaries.filter((summary) => summary.status === "behind");
+  const allAhead = summaries.length > 0 && summaries.every((summary) => summary.status === "ahead");
+  const overallStatus = behind.length > 0 ? "behind" : allAhead ? "ahead" : "on-track";
+  const heading = overallStatus === "behind" ? "A couple of subjects need attention" : overallStatus === "ahead" ? "You are ahead of the runway" : "You are on track";
+  return <section className={`schedule-status-card ${overallStatus}`} aria-label="Study schedule status"><div className="schedule-status-head"><div><div className="card-kicker"><span>RUNWAY STATUS</span><Icon name={overallStatus === "behind" ? "info" : "target"} size={15} /></div><h3>{heading}</h3></div><span className="schedule-status-pill">{overallStatus === "behind" ? "Behind" : overallStatus === "ahead" ? "Ahead" : "On track"}</span></div><div className="schedule-status-list">{summaries.map((summary) => <div className={`schedule-status-row ${summary.status}`} key={summary.subjectCode}><strong>{summary.subjectCode}</strong><span>{summary.status === "behind" ? `${summary.gap} chapters behind · about ${summary.weeksBehind} weeks` : summary.status === "ahead" ? `${summary.aheadBy} chapters ahead` : summary.subjectCode === "A311" ? "Revision runway" : "On track with lectures"}</span></div>)}</div>{behind.length > 0 ? <><p className="schedule-status-help">Want help making space? Rebalancing protects fixed dates, keeps completed work, and moves unfinished blocks into the next available gaps.</p><button className="text-button" onClick={replan}>Rebalance my plan <Icon name="arrow" size={14} /></button></> : <p className="schedule-status-help">No rebalance needed right now. Start with Today&apos;s first block and keep the runway steady.</p>}</section>;
 }
 
 function CompanionCard({ behind, reviewDue }: { behind: boolean; reviewDue: boolean }) {
@@ -295,9 +305,9 @@ function WeeklyPulses({ state, today }: { state: AppState; today: string }) {
 
 function SubjectProgress({ subject, state, today }: { subject: Subject; state: AppState; today: string }) {
   const progress = getSubjectProgress(subject, state.tasks, state.sessions, state.chapters);
-  const summary = getSubjectSummary(subject, today, state.tasks, state.chapters);
+  const summary = getSubjectSummary(subject, today, state.tasks, state.chapters, state.events);
   const hasChapters = state.chapters.some((chapter) => chapter.subjectCode === subject.code);
-  return <div className={`subject-progress-card ${subject.color}`}><div className="subject-card-head"><div><strong>{subject.code}</strong><span>{subject.shortName}</span></div><span className="percent">{subject.code === "A311" && !hasChapters ? "REVISION" : `${progress.coveragePercent}% path`}</span></div><div className="progress-line"><span style={{ width: `${progress.coveragePercent}%` }} /></div><p>{progress.label}</p><span className={`small-status ${summary.behind ? "behind" : ""}`}>{summary.behind ? `Needs a ${summary.gap}-chapter catch-up` : subject.progressNote}</span></div>;
+  return <div className={`subject-progress-card ${subject.color}`}><div className="subject-card-head"><div><strong>{subject.code}</strong><span>{subject.shortName}</span></div><span className="percent">{subject.code === "A311" && !hasChapters ? "REVISION" : `${progress.coveragePercent}% path`}</span></div><div className="progress-line"><span style={{ width: `${progress.coveragePercent}%` }} /></div><p>{progress.label}</p><span className={`small-status ${summary.status}`}>{summary.label}</span></div>;
 }
 
 function ReviewQueue({ tasks, onRevisit, onReview }: { tasks: StudyTask[]; onRevisit: (id: string) => void; onReview: (id: string, confidence: Confidence) => void }) {

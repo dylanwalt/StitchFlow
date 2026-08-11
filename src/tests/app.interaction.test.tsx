@@ -9,6 +9,14 @@ function readSavedState() {
 }
 
 describe("study cockpit interactions", () => {
+  it("shows runway status before offering a rebalance", () => {
+    window.location.hash = "dashboard";
+    render(<App />);
+    expect(screen.getByRole("heading", { name: "A couple of subjects need attention" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rebalance my plan" })).toBeInTheDocument();
+    expect(screen.queryByText("Some ground to cover")).not.toBeInTheDocument();
+  });
+
   it("completes a task and persists its revisit date", async () => {
     window.location.hash = "dashboard";
     render(<App />);

@@ -16,6 +16,24 @@ describe("planner utilities", () => {
     expect(summary.gap).toBe(32);
   });
 
+  it("compares progress with the lecture runway instead of the full syllabus", () => {
+    const f102 = seedState.subjects.find((subject) => subject.code === "F102")!;
+    const f108 = seedState.subjects.find((subject) => subject.code === "F108")!;
+    const f102Summary = getSubjectSummary(f102, "2026-08-11", seedState.tasks, seedState.chapters, seedState.events);
+    const f108Summary = getSubjectSummary(f108, "2026-08-11", seedState.tasks, seedState.chapters, seedState.events);
+    expect(f102Summary.status).toBe("behind");
+    expect(f102Summary.expectedUnits).toBe(12);
+    expect(f102Summary.gap).toBe(8);
+    expect(f102Summary.weeksBehind).toBeGreaterThan(0);
+    expect(f108Summary.status).toBe("on-track");
+    expect(f108Summary.gap).toBe(0);
+
+    const aheadChapters = seedState.chapters.map((chapter) => chapter.subjectCode === "F108" && chapter.chapterNumber <= 10 ? { ...chapter, readThrough: true } : chapter);
+    const aheadSummary = getSubjectSummary(f108, "2026-08-11", seedState.tasks, aheadChapters, seedState.events);
+    expect(aheadSummary.status).toBe("ahead");
+    expect(aheadSummary.aheadBy).toBe(2);
+  });
+
   it("makes completed learning visible without pretending it is an exam mark", () => {
     const f102 = seedState.subjects.find((subject) => subject.code === "F102")!;
     const before = getSubjectProgress(f102, seedState.tasks, []);

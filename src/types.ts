@@ -14,6 +14,7 @@ export type StudyPhase = "understand" | "retrieve" | "practice" | "review";
 export type Confidence = "hard" | "okay" | "solid";
 export type SessionKind = "focus" | "past-paper";
 export type ChapterCheck = "readThrough" | "summarized" | "confident" | "reviewed";
+export type ScheduleStatus = "ahead" | "on-track" | "behind";
 
 export interface TaskImpact {
   coverage: number;
@@ -139,8 +140,12 @@ export interface AppState {
 
 export interface PlannerSummary {
   subjectCode: SubjectCode;
+  status: ScheduleStatus;
   behind: boolean;
   gap: number;
+  aheadBy: number;
+  expectedUnits: number;
+  weeksBehind: number;
   daysToExam: number;
   label: string;
 }

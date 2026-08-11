@@ -6,6 +6,8 @@ The cockpit is built around a repeatable study loop: understand a small section,
 
 Plan items support 50%, 80%, and Done progress, so a partial pass is saved as useful work instead of disappearing or becoming a missed streak. The Study plan opens on Today and groups the wider runway into Tomorrow, This week, Later, and Everything.
 
+The dashboard compares chapter progress with the supplied lecture runway, so it can say whether each subject is ahead, on track, or behind the current schedule. Replanning is offered only when a subject is actually behind; it reports the approximate chapter and week gap and explains what rebalancing will preserve.
+
 ## Run locally
 
 ```bash
