@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seedState } from "../data";
-import { addDays, daysUntil, getSubjectProgress, getSubjectSummary, isTaskOverdue, replanTasks, reviewInterval } from "../planner";
+import { addDays, daysUntil, getChapterMetrics, getSubjectProgress, getSubjectSummary, isTaskOverdue, replanTasks, reviewInterval } from "../planner";
 import { migrateState, parseImportedState } from "../storage";
 
 describe("planner utilities", () => {
@@ -24,6 +24,19 @@ describe("planner utilities", () => {
     expect(before.coverageUnits).toBe(4);
     expect(after.coverageUnits).toBe(7);
     expect(after.coveragePercent).toBeGreaterThan(before.coveragePercent);
+  });
+
+  it("calculates the four useful chapter passes", () => {
+    const chapters = seedState.chapters.map((chapter) => chapter.subjectCode === "F102" && chapter.chapterNumber === 1
+      ? { ...chapter, summarized: true, confident: true, reviewed: true }
+      : chapter);
+    const metrics = getChapterMetrics("F102", chapters);
+    expect(metrics.total).toBe(36);
+    expect(metrics.readThrough).toBe(4);
+    expect(metrics.summarized).toBe(1);
+    expect(metrics.confident).toBe(1);
+    expect(metrics.reviewed).toBe(1);
+    expect(metrics.completionPercent).toBe(5);
   });
 
   it("marks unfinished past tasks as overdue", () => {
@@ -59,14 +72,17 @@ describe("planner utilities", () => {
     const legacy = {
       ...seedState,
       version: 1,
+      chapters: undefined,
       tasks: seedState.tasks.map(({ phase, impact, ...task }) => task),
       sessions: [],
     };
     const migrated = migrateState(legacy, seedState);
-    expect(migrated?.version).toBe(2);
+    expect(migrated?.version).toBe(3);
     expect(migrated?.tasks[0].phase).toBeTruthy();
     expect(parseImportedState("not-json", seedState)).toBeNull();
     expect(parseImportedState(JSON.stringify({ version: 99 }), seedState)).toBeNull();
-    expect(parseImportedState(JSON.stringify(seedState), seedState)?.version).toBe(2);
+    expect(parseImportedState(JSON.stringify(seedState), seedState)?.version).toBe(3);
+    expect(migrated?.chapters.filter((chapter) => chapter.subjectCode === "F102")).toHaveLength(36);
+    expect(migrated?.chapters.filter((chapter) => chapter.subjectCode === "F102" && chapter.readThrough)).toHaveLength(4);
   });
 });

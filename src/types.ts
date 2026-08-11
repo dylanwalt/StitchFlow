@@ -7,11 +7,13 @@ export type TaskKind =
   | "error-review"
   | "milestone";
 
-export type TaskStatus = "todo" | "done" | "snoozed";
+export type TaskStatus = "todo" | "in-progress" | "done" | "snoozed";
+export type TaskCompletionPercent = 50 | 80 | 100;
 
 export type StudyPhase = "understand" | "retrieve" | "practice" | "review";
 export type Confidence = "hard" | "okay" | "solid";
 export type SessionKind = "focus" | "past-paper";
+export type ChapterCheck = "readThrough" | "summarized" | "confident" | "reviewed";
 
 export interface TaskImpact {
   coverage: number;
@@ -63,6 +65,7 @@ export interface StudyTask {
   dueDate: string;
   estimatedMinutes: number;
   status: TaskStatus;
+  completionPercent?: TaskCompletionPercent;
   priority: number;
   phase: StudyPhase;
   impact: TaskImpact;
@@ -105,6 +108,17 @@ export interface ChapterCheckpoint {
   updatedAt: string;
 }
 
+export interface ChapterProgress {
+  id: string;
+  subjectCode: SubjectCode;
+  chapterNumber: number;
+  readThrough: boolean;
+  summarized: boolean;
+  confident: boolean;
+  reviewed: boolean;
+  updatedAt: string;
+}
+
 export interface UserSettings {
   userName: string;
   lastReplannedAt?: string;
@@ -117,6 +131,7 @@ export interface AppState {
   events: CalendarEvent[];
   tasks: StudyTask[];
   sessions: StudySession[];
+  chapters: ChapterProgress[];
   checkpoints: ChapterCheckpoint[];
   settings: UserSettings;
   updatedAt: string;
@@ -140,6 +155,15 @@ export interface SubjectProgress {
   completedBlocks: number;
   plannedBlocks: number;
   label: string;
+}
+
+export interface ChapterMetrics {
+  total: number;
+  readThrough: number;
+  summarized: number;
+  confident: number;
+  reviewed: number;
+  completionPercent: number;
 }
 
 export type StudySessionDraft = Omit<StudySession, "id" | "date">;

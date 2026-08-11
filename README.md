@@ -2,7 +2,9 @@
 
 StitchFlow is a gentle, local-first study cockpit for A311, F102, and F108 exam season.
 
-The cockpit is built around a repeatable study loop: understand a small section, retrieve it without notes, practise the exam form, review the useful errors, and revisit later. Tasks explain what they contribute to the study path, while the dashboard keeps the three subjects visible without turning progress into a predicted mark.
+The cockpit is built around a repeatable study loop: understand a small section, retrieve it without notes, practise the exam form, review the useful errors, and revisit later. Tasks explain what they contribute to the study path, while the dashboard keeps the three subjects visible without turning progress into a predicted mark. Each subject also has a chapter runway with separate Read, Summary, Confident, and Review passes; chapter totals can be adjusted in the UI and are grouped into compact 1–10, 11–20 buckets.
+
+Plan items support 50%, 80%, and Done progress, so a partial pass is saved as useful work instead of disappearing or becoming a missed streak. The Study plan opens on Today and groups the wider runway into Tomorrow, This week, Later, and Everything.
 
 ## Run locally
 
@@ -29,7 +31,7 @@ The app is intentionally static. Seed data ships with the repository, while prog
 
 There is no Supabase connection, authentication, analytics, server API, or database credential.
 
-The browser state is versioned and migrates the original starter format safely. Export a JSON backup before changing browsers; this is intentionally local to the current browser and does not sync between devices.
+The browser state is versioned and migrates the original starter format safely, including the initial F102/F108 chapter progress. Export a JSON backup before changing browsers; this is intentionally local to the current browser and does not sync between devices.
 
 ## GitHub Pages
 

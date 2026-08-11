@@ -1,5 +1,7 @@
 import type {
   AppState,
+  ChapterMetrics,
+  ChapterProgress,
   Confidence,
   PlannerSummary,
   StudyPhase,
@@ -73,6 +75,17 @@ export function defaultImpact(kind: TaskKind): TaskImpact {
   }
 }
 
+export function getChapterMetrics(subjectCode: SubjectCode, chapters: ChapterProgress[]): ChapterMetrics {
+  const subjectChapters = chapters.filter((chapter) => chapter.subjectCode === subjectCode);
+  const total = subjectChapters.length;
+  const readThrough = subjectChapters.filter((chapter) => chapter.readThrough).length;
+  const summarized = subjectChapters.filter((chapter) => chapter.summarized).length;
+  const confident = subjectChapters.filter((chapter) => chapter.confident).length;
+  const reviewed = subjectChapters.filter((chapter) => chapter.reviewed).length;
+  const completedChecks = subjectChapters.reduce((sum, chapter) => sum + Number(chapter.readThrough) + Number(chapter.summarized) + Number(chapter.confident) + Number(chapter.reviewed), 0);
+  return { total, readThrough, summarized, confident, reviewed, completionPercent: total ? Math.round((completedChecks / (total * 4)) * 100) : 0 };
+}
+
 export function taskPriority(
   task: StudyTask,
   subject: Subject,
@@ -99,14 +112,29 @@ function completedCount(tasks: StudyTask[], predicate: (task: StudyTask) => bool
   return tasks.filter((task) => task.status === "done" && !task.archived && predicate(task)).length;
 }
 
-export function getSubjectProgress(subject: Subject, tasks: StudyTask[], sessions: AppState["sessions"] = []): SubjectProgress {
+export function getSubjectProgress(subject: Subject, tasks: StudyTask[], sessions: AppState["sessions"] = [], chapters: ChapterProgress[] = []): SubjectProgress {
   const subjectTasks = tasks.filter((task) => task.subjectCode === subject.code);
   const subjectSessions = sessions.filter((session) => session.subjectCode === subject.code);
-  const learnTasks = subjectTasks.filter((task) => (task.coverageUnits ?? 0) > 0 && !task.archived);
+  const chapterMetrics = getChapterMetrics(subject.code, chapters);
   const retrievalTasks = subjectTasks.filter((task) => task.kind === "recall" || task.kind === "practice" || task.kind === "error-review");
   const practiceTasks = subjectTasks.filter((task) => task.kind === "practice" || task.kind === "error-review");
   const plannedBlocks = subjectTasks.filter((task) => !task.archived && task.status !== "done").length + subjectTasks.filter((task) => !task.archived && task.status === "done").length;
   const completedBlocks = subjectTasks.filter((task) => task.status === "done" && !task.archived).length + subjectSessions.length;
+
+  if (chapterMetrics.total > 0) {
+    const taskPracticePercent = practiceTasks.length ? Math.round((completedCount(subjectTasks, (task) => practiceTasks.includes(task)) / practiceTasks.length) * 100) : 0;
+    return {
+      subjectCode: subject.code,
+      coveragePercent: Math.round((chapterMetrics.readThrough / chapterMetrics.total) * 100),
+      coverageUnits: chapterMetrics.readThrough,
+      targetUnits: chapterMetrics.total,
+      retrievalPercent: Math.round((chapterMetrics.confident / chapterMetrics.total) * 100),
+      practicePercent: taskPracticePercent,
+      completedBlocks,
+      plannedBlocks,
+      label: `Read through ${chapterMetrics.readThrough} of ${chapterMetrics.total}`,
+    };
+  }
 
   if (subject.code === "A311") {
     const plannedPapers = Math.max(1, subjectTasks.filter((task) => task.kind === "practice" && task.fixed).length);
@@ -142,9 +170,10 @@ export function getSubjectSummary(
   subject: Subject,
   today = toISODate(new Date()),
   tasks: StudyTask[] = [],
+  chapters: ChapterProgress[] = [],
 ): PlannerSummary {
   const daysToExam = Math.max(0, daysUntil(subject.examDates[0], today));
-  const progress = getSubjectProgress(subject, tasks);
+  const progress = getSubjectProgress(subject, tasks, [], chapters);
   const gap = subject.code === "A311" ? 0 : Math.max(0, progress.targetUnits - progress.coverageUnits);
   const behind = subject.code !== "A311" && gap >= 4 && daysToExam < 100;
   return {
@@ -172,7 +201,7 @@ export function replanTasks(state: AppState, today = toISODate(new Date())): Stu
     ...state.events.filter((event) => event.fixed).map((event) => event.date),
     ...state.tasks.filter((task) => task.fixed && task.status !== "done").map((task) => task.dueDate),
   ]);
-  const gaps = new Map(state.subjects.map((subject) => [subject.code, getSubjectSummary(subject, today, state.tasks).gap]));
+  const gaps = new Map(state.subjects.map((subject) => [subject.code, getSubjectSummary(subject, today, state.tasks, state.chapters).gap]));
   const movable = state.tasks
     .filter((task) => task.status !== "done" && !task.fixed && !task.archived)
     .map((task) => {
@@ -210,7 +239,7 @@ export function replanTasks(state: AppState, today = toISODate(new Date())): Stu
     return {
       ...task,
       dueDate: nextDate,
-      status: "todo",
+      status: task.status === "snoozed" ? "todo" : task.status,
       priority: taskPriority(task, subject, today, gaps.get(task.subjectCode) ?? 0),
     };
   });

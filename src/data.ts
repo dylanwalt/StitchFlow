@@ -2,6 +2,7 @@ import type {
   AppState,
   CalendarEvent,
   ChapterCheckpoint,
+  ChapterProgress,
   StudyTask,
   Subject,
   SubjectCode,
@@ -232,7 +233,7 @@ const pastPaperTasks: StudyTask[] = [
 ];
 
 export const seedState: AppState = {
-  version: 2,
+  version: 3,
   subjects,
   events: [...lectureEvents, ...fixedEvents, ...checklistEvents, ...practiceFridays],
   tasks: [...immediateTasks, ...checklistTasks, ...fixedTasks, ...pastPaperTasks].map((task) => ({
@@ -240,6 +241,10 @@ export const seedState: AppState = {
     priority: taskPriority(task, subjects.find((subject) => subject.code === task.subjectCode)!, "2026-08-11"),
   })),
   sessions: [],
+  chapters: [
+    ...createChapterProgress("F102", 36, CREATED_AT).map((chapter) => chapter.chapterNumber <= 4 ? { ...chapter, readThrough: true } : chapter),
+    ...createChapterProgress("F108", 23, CREATED_AT).map((chapter) => chapter.chapterNumber <= 8 ? { ...chapter, readThrough: true } : chapter),
+  ],
   checkpoints: [],
   settings: {
     userName: "study buddy",
@@ -247,6 +252,19 @@ export const seedState: AppState = {
   },
   updatedAt: CREATED_AT,
 };
+
+export function createChapterProgress(subjectCode: SubjectCode, total: number, updatedAt = new Date().toISOString()): ChapterProgress[] {
+  return Array.from({ length: Math.max(0, total) }, (_, index) => ({
+    id: `${subjectCode}-chapter-${index + 1}`,
+    subjectCode,
+    chapterNumber: index + 1,
+    readThrough: false,
+    summarized: false,
+    confident: false,
+    reviewed: false,
+    updatedAt,
+  }));
+}
 
 export const emptyCheckpoint = (subjectCode: SubjectCode, chapterLabel: string): ChapterCheckpoint => ({
   id: `${subjectCode}-${chapterLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,

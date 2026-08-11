@@ -15,7 +15,7 @@ describe("study cockpit interactions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Complete F102 catch-up: chapters 5-7" }));
     await waitFor(() => expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.status).toBe("done"));
     expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.revisitDate).toBe("2026-08-13");
-    expect(screen.getByRole("status")).toHaveTextContent("block has a job");
+    expect(screen.getByRole("status")).toHaveTextContent("Task updated");
   });
 
   it("snoozes work without changing another subject", async () => {
@@ -52,6 +52,33 @@ describe("study cockpit interactions", () => {
     expect(readSavedState().sessions[0]?.errorCount).toBe(4);
   });
 
+  it("creates a chapter checklist and records individual passes", async () => {
+    window.location.hash = "subjects";
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /A311/ }));
+    fireEvent.change(screen.getByLabelText("Total chapters"), { target: { value: "12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create chapter checklist" }));
+    await waitFor(() => expect(readSavedState().chapters.filter((item) => item.subjectCode === "A311")).toHaveLength(12));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Read through this chapter: chapter 1" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Captured a short summary: chapter 1" }));
+    await waitFor(() => {
+      const chapter = readSavedState().chapters.find((item) => item.subjectCode === "A311" && item.chapterNumber === 1);
+      expect(chapter?.readThrough).toBe(true);
+      expect(chapter?.summarized).toBe(true);
+    });
+  });
+
+  it("supports honest partial progress on a plan item", async () => {
+    window.location.hash = "plan";
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Mark F102 catch-up: chapters 5-7 50% ready" }));
+    await waitFor(() => {
+      const task = readSavedState().tasks.find((item) => item.id === "today-f102-catchup");
+      expect(task?.status).toBe("in-progress");
+      expect(task?.completionPercent).toBe(50);
+    });
+  });
+
   it("imports a backup through settings", async () => {
     window.location.hash = "dashboard";
     render(<App />);
@@ -60,6 +87,6 @@ describe("study cockpit interactions", () => {
     const backup = new File([JSON.stringify(seedState)], "stitchflow-backup.json", { type: "application/json" });
     fireEvent.change(input, { target: { files: [backup] } });
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Backup restored"));
-    expect(readSavedState().version).toBe(2);
+    expect(readSavedState().version).toBe(3);
   });
 });
