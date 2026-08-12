@@ -7,7 +7,7 @@ import type {
   Subject,
   SubjectCode,
 } from "./types";
-import { defaultImpact, phaseForKind, taskPriority } from "./planner";
+import { createCalendarAlignedTasks, defaultImpact, lecturePrepDate, phaseForKind, taskPriority } from "./planner";
 
 const CREATED_AT = "2026-08-11T08:00:00+02:00";
 
@@ -63,8 +63,9 @@ function makeEvent(
   chapterRange?: string,
   durationMinutes?: number,
   fixed = false,
+  dateConfirmed = true,
 ): CalendarEvent {
-  return { id, date, kind, title, subjectCode, detail, chapterRange, durationMinutes, fixed };
+  return { id, date, dateConfirmed, kind, title, subjectCode, detail, chapterRange, durationMinutes, fixed };
 }
 
 const lectureEvents: CalendarEvent[] = [
@@ -98,6 +99,8 @@ const lectureEvents: CalendarEvent[] = [
 const fixedEvents: CalendarEvent[] = [
   makeEvent("f102-test-1", "2026-09-07", "test", "Test 1", "F102", "Lab to be confirmed", undefined, 180, true),
   makeEvent("f108-test-1", "2026-09-10", "test", "Test 1", "F108", "Core reading test", undefined, 180, true),
+  makeEvent("f102-test-2", "2026-09-30", "test", "Test 2", "F102", "September assessment · date to be confirmed", undefined, 180, true, false),
+  makeEvent("f108-test-2", "2026-09-30", "test", "Test 2", "F108", "September assessment · date to be confirmed", undefined, 180, true, false),
   makeEvent("a311-paper-1", "2026-10-01", "exam", "Paper 1", "A311", "Typed, closed-book paper", undefined, 180, true),
   makeEvent("a311-paper-2", "2026-10-02", "exam", "Paper 2", "A311", "Typed, closed-book paper", undefined, 180, true),
   makeEvent("f102-exam", "2026-11-05", "exam", "F102 exam", "F102", "Three-hour typed exam", undefined, 180, true),
@@ -106,33 +109,6 @@ const fixedEvents: CalendarEvent[] = [
   makeEvent("f102-assignment-1", "2026-08-03", "assignment", "Assignment 1", "F102", "Completed", "Chapters 4, 16, 17", undefined, true),
   makeEvent("f108-assignment-2", "2026-10-01", "assignment", "Take-home assignment 2", "F108", "Due alongside the lecture block", "Chapters 20, 22", undefined, true),
   makeEvent("f102-assignment-2", "2026-10-05", "assignment", "Assignment 2", "F102", "Due before lecture", "Chapter 28", undefined, true),
-];
-
-const checklistRows: Array<{ date: string; subjectCode: SubjectCode; title: string; detail: string; kind: StudyTask["kind"] }> = [
-  { date: "2026-08-02", subjectCode: "F102", title: "Prep chapters 4, 16, 17", detail: "Prepare the next discussion block.", kind: "learn" },
-  { date: "2026-08-02", subjectCode: "F108", title: "Prep chapters 8-9", detail: "Keep the annotation pass concise.", kind: "learn" },
-  { date: "2026-08-09", subjectCode: "F102", title: "Prep chapters 12-14", detail: "Catch the class milestone with a first pass.", kind: "learn" },
-  { date: "2026-08-09", subjectCode: "F108", title: "Prep chapters 10-11", detail: "Build a short checkpoint after reading.", kind: "learn" },
-  { date: "2026-08-16", subjectCode: "F102", title: "Prep chapters 13-15 and 20", detail: "Prioritise the examinable ideas first.", kind: "learn" },
-  { date: "2026-08-16", subjectCode: "F108", title: "Revise chapters 12-14", detail: "Recall before re-reading.", kind: "recall" },
-  { date: "2026-08-23", subjectCode: "F102", title: "Prep chapters 19 section 2, 21 and 22", detail: "Use focused notes, not a second textbook.", kind: "learn" },
-  { date: "2026-08-23", subjectCode: "F108", title: "Prep chapters 16-17", detail: "Capture the one concept that still feels fuzzy.", kind: "learn" },
-  { date: "2026-08-30", subjectCode: "F102", title: "Prep chapters 23, 24 and 33", detail: "Move toward the September test scope.", kind: "learn" },
-  { date: "2026-08-30", subjectCode: "F108", title: "Prep chapters 18 and 20", detail: "Review the chapter map before the detail.", kind: "learn" },
-  { date: "2026-09-06", subjectCode: "F102", title: "Review for Test 1", detail: "Do one timed question set.", kind: "practice" },
-  { date: "2026-09-06", subjectCode: "F108", title: "Review for Test 1", detail: "Recall key definitions without notes.", kind: "practice" },
-  { date: "2026-09-13", subjectCode: "F102", title: "Prep chapters 18, 19 and 32", detail: "Consolidate the testing gaps.", kind: "learn" },
-  { date: "2026-09-13", subjectCode: "F108", title: "Prep chapter 15", detail: "Create a short pricing checkpoint.", kind: "learn" },
-  { date: "2026-09-20", subjectCode: "F102", title: "Revise chapters 18, 19 and 32", detail: "Use active recall and error notes.", kind: "recall" },
-  { date: "2026-09-20", subjectCode: "F108", title: "Prep chapters 20 and 22 + TH2", detail: "Keep the assignment separate from core revision.", kind: "milestone" },
-  { date: "2026-09-27", subjectCode: "F102", title: "Prep chapters 29-31", detail: "Finish the last major chapter block.", kind: "learn" },
-  { date: "2026-09-27", subjectCode: "F108", title: "Review chapters 19 and 23", detail: "Begin exam-style consolidation.", kind: "recall" },
-  { date: "2026-10-04", subjectCode: "F102", title: "Prep chapter 28 + assignment 2", detail: "Pair the reading with one applied question.", kind: "milestone" },
-  { date: "2026-10-04", subjectCode: "F108", title: "Prep chapter 21", detail: "Build the final chapter checkpoint.", kind: "learn" },
-  { date: "2026-10-11", subjectCode: "F102", title: "Revise chapters 25-27", detail: "Practice under a short time limit.", kind: "practice" },
-  { date: "2026-10-11", subjectCode: "F108", title: "Revise chapters 19 and 23", detail: "Turn weak areas into questions.", kind: "recall" },
-  { date: "2026-10-18", subjectCode: "F102", title: "Revise chapters 33-36", detail: "Complete the first full-scope pass.", kind: "recall" },
-  { date: "2026-10-18", subjectCode: "F108", title: "Past-paper review", detail: "Mark and log the top three errors.", kind: "error-review" },
 ];
 
 function makeTask(
@@ -170,8 +146,16 @@ function makeTask(
   };
 }
 
-const checklistEvents: CalendarEvent[] = checklistRows.map((row, index) =>
-  makeEvent(`checklist-${index + 1}`, row.date, "checklist", row.title, row.subjectCode, row.detail),
+const lecturePrepEvents: CalendarEvent[] = lectureEvents.map((event) =>
+  makeEvent(
+    `prep-${event.id}`,
+    lecturePrepDate(event.date),
+    "checklist",
+    `Pre-reading · ${event.subjectCode}`,
+    event.subjectCode,
+    `Complete two days before this lecture: ${event.detail ?? "skim the assigned reading and write three questions"}.`,
+    event.chapterRange,
+  ),
 );
 
 const practiceFridays = [
@@ -183,23 +167,6 @@ const practiceFridays = [
   "2026-09-18",
   "2026-09-25",
 ].map((date, index) => makeEvent(`a311-practice-${index + 1}`, date, "practice", "A311 past-paper block", "A311", "Three hours: attempt, mark, and log the top errors.", undefined, 180, true));
-
-const checklistTasks = checklistRows.map((row, index) =>
-  makeTask(
-    `checklist-task-${index + 1}`,
-    row.subjectCode,
-    row.kind,
-    row.title,
-    row.date,
-    row.kind === "practice" ? 120 : 75,
-    row.detail,
-    false,
-    `checklist-${index + 1}`,
-    row.kind === "learn" ? 2 : 0,
-    undefined,
-    row.date < "2026-08-11",
-  ),
-);
 
 const immediateTasks: StudyTask[] = [
   makeTask("today-f102-catchup", "F102", "learn", "F102 catch-up: chapters 5-7", "2026-08-11", 75, "First pass only: map the idea, answer the within-chapter question, and leave one short checkpoint. Do not rewrite the chapter.", false, undefined, 3),
@@ -235,8 +202,8 @@ const pastPaperTasks: StudyTask[] = [
 export const seedState: AppState = {
   version: 3,
   subjects,
-  events: [...lectureEvents, ...fixedEvents, ...checklistEvents, ...practiceFridays],
-  tasks: [...immediateTasks, ...checklistTasks, ...fixedTasks, ...pastPaperTasks].map((task) => ({
+  events: [...lectureEvents, ...fixedEvents, ...lecturePrepEvents, ...practiceFridays],
+  tasks: [...immediateTasks, ...createCalendarAlignedTasks([...lectureEvents, ...fixedEvents], subjects, CREATED_AT), ...fixedTasks, ...pastPaperTasks].map((task) => ({
     ...task,
     priority: taskPriority(task, subjects.find((subject) => subject.code === task.subjectCode)!, "2026-08-11"),
   })),
@@ -266,13 +233,15 @@ export function createChapterProgress(subjectCode: SubjectCode, total: number, u
   }));
 }
 
-export const emptyCheckpoint = (subjectCode: SubjectCode, chapterLabel: string): ChapterCheckpoint => ({
-  id: `${subjectCode}-${chapterLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+export const emptyCheckpoint = (subjectCode: SubjectCode, chapterLabel: string, chapterNumber = 1): ChapterCheckpoint => ({
+  id: `${subjectCode}-chapter-${chapterNumber}`,
   subjectCode,
+  chapterNumber,
   chapterLabel,
   keyIdeas: "",
   formulas: "",
   uncertainty: "",
   examQuestion: "",
+  flashcards: [],
   updatedAt: new Date().toISOString(),
 });

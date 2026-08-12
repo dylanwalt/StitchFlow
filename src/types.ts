@@ -15,6 +15,7 @@ export type Confidence = "hard" | "okay" | "solid";
 export type SessionKind = "focus" | "past-paper";
 export type ChapterCheck = "readThrough" | "summarized" | "confident" | "reviewed";
 export type ScheduleStatus = "ahead" | "on-track" | "behind";
+export type PlanningRole = "lecture-prep" | "assessment-prep";
 
 export interface TaskImpact {
   coverage: number;
@@ -48,6 +49,7 @@ export interface Subject {
 export interface CalendarEvent {
   id: string;
   date: string;
+  dateConfirmed?: boolean;
   subjectCode?: SubjectCode;
   kind: CalendarEventKind;
   title: string;
@@ -74,6 +76,7 @@ export interface StudyTask {
   paperName?: string;
   archived?: boolean;
   sourceEventId?: string;
+  planningRole?: PlanningRole;
   fixed?: boolean;
   createdAt: string;
   lastCompletedAt?: string;
@@ -101,12 +104,20 @@ export interface StudySession {
 export interface ChapterCheckpoint {
   id: string;
   subjectCode: SubjectCode;
+  chapterNumber: number;
   chapterLabel: string;
   keyIdeas: string;
   formulas: string;
   uncertainty: string;
   examQuestion: string;
+  flashcards: Flashcard[];
   updatedAt: string;
+}
+
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
 }
 
 export interface ChapterProgress {

@@ -1,12 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { seedState } from "../data";
-import { addDays, daysUntil, getChapterMetrics, getSubjectProgress, getSubjectSummary, isTaskOverdue, replanTasks, reviewInterval } from "../planner";
+import { addDays, createCalendarAlignedTasks, daysUntil, getChapterMetrics, getSubjectProgress, getSubjectSummary, isTaskOverdue, lecturePrepDate, replanTasks, reviewInterval } from "../planner";
 import { migrateState, parseImportedState } from "../storage";
 
 describe("planner utilities", () => {
   it("calculates calendar day differences from ISO dates", () => {
     expect(daysUntil("2026-10-01", "2026-08-11")).toBe(51);
     expect(addDays("2026-08-11", 3)).toBe("2026-08-14");
+  });
+
+  it("places lecture prep before class and keeps uncertain tests from creating fake prep dates", () => {
+    expect(lecturePrepDate("2026-08-13")).toBe("2026-08-11");
+    expect(lecturePrepDate("2026-08-17")).toBe("2026-08-14");
+    const tasks = createCalendarAlignedTasks(seedState.events, seedState.subjects, "2026-08-11T08:00:00+02:00");
+    expect(tasks.find((task) => task.sourceEventId === "f108-aug-13" && task.planningRole === "lecture-prep")?.dueDate).toBe("2026-08-11");
+    expect(tasks.some((task) => task.sourceEventId === "f102-test-2")).toBe(false);
+    expect(tasks.find((task) => task.sourceEventId === "f102-test-1" && task.title.includes("timed practice"))?.dueDate).toBe("2026-08-31");
   });
 
   it("identifies the seeded F102 catch-up gap", () => {

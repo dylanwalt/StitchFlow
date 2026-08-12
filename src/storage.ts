@@ -1,5 +1,5 @@
-import { defaultImpact, phaseForKind } from "./planner";
-import type { AppState, ChapterProgress, StudySession, StudyTask, TaskKind } from "./types";
+import { createCalendarAlignedTasks, defaultImpact, phaseForKind } from "./planner";
+import type { AppState, ChapterCheckpoint, ChapterProgress, Flashcard, StudySession, StudyTask, TaskKind } from "./types";
 
 export const STORAGE_VERSION = 3;
 export const STORAGE_KEY = "stitchflow.app-state.v3";
@@ -30,6 +30,7 @@ function normalizeTask(raw: Partial<StudyTask>): StudyTask | null {
     paperName: raw.paperName,
     archived: raw.archived ?? false,
     sourceEventId: raw.sourceEventId,
+    planningRole: raw.planningRole,
     fixed: raw.fixed ?? false,
     createdAt: raw.createdAt ?? new Date().toISOString(),
     lastCompletedAt: raw.lastCompletedAt,
@@ -106,27 +107,66 @@ function normalizeSession(raw: Partial<StudySession>): StudySession | null {
   };
 }
 
+function normalizeFlashcard(raw: Partial<Flashcard>, index: number): Flashcard | null {
+  if (!raw || typeof raw.front !== "string" || typeof raw.back !== "string") return null;
+  return {
+    id: raw.id || `flashcard-${index + 1}`,
+    front: raw.front,
+    back: raw.back,
+  };
+}
+
+function normalizeCheckpoint(raw: Partial<ChapterCheckpoint>): ChapterCheckpoint | null {
+  if (!raw.id || !raw.subjectCode) return null;
+  const labelChapter = raw.chapterLabel?.match(/\d+/)?.[0];
+  const chapterNumber = Number.isInteger(raw.chapterNumber) && Number(raw.chapterNumber) > 0
+    ? Number(raw.chapterNumber)
+    : Number(labelChapter) > 0 ? Number(labelChapter) : 1;
+  return {
+    id: raw.id,
+    subjectCode: raw.subjectCode,
+    chapterNumber,
+    chapterLabel: raw.chapterLabel ?? `Chapter ${chapterNumber}`,
+    keyIdeas: raw.keyIdeas ?? "",
+    formulas: raw.formulas ?? "",
+    uncertainty: raw.uncertainty ?? "",
+    examQuestion: raw.examQuestion ?? "",
+    flashcards: Array.isArray(raw.flashcards)
+      ? raw.flashcards.map((flashcard, index) => normalizeFlashcard(flashcard, index)).filter((flashcard): flashcard is Flashcard => Boolean(flashcard))
+      : [],
+    updatedAt: raw.updatedAt ?? new Date().toISOString(),
+  };
+}
+
 export function migrateState(value: unknown, seed: AppState): AppState | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Partial<AppState>;
-  if (raw.version !== 1 && raw.version !== 2 && raw.version !== STORAGE_VERSION) return null;
+  if (raw.version !== 1 && raw.version !== 2 && raw.version !== 3 && raw.version !== STORAGE_VERSION) return null;
   if (!Array.isArray(raw.subjects) || !Array.isArray(raw.events) || !Array.isArray(raw.tasks)) return null;
-  const tasks = raw.tasks.map((task) => normalizeTask(task)).filter((task): task is StudyTask => Boolean(task));
-  if (tasks.length !== raw.tasks.length) return null;
+  const normalizedTasks = raw.tasks.map((task) => normalizeTask(task)).filter((task): task is StudyTask => Boolean(task));
+  if (normalizedTasks.length !== raw.tasks.length) return null;
   const sessions = Array.isArray(raw.sessions)
     ? raw.sessions.map((session) => normalizeSession(session)).filter((session): session is StudySession => Boolean(session))
     : [];
   const updatedAt = raw.updatedAt ?? seed.updatedAt;
+  const sourceEvents = raw.events ?? [];
+  const events = [...sourceEvents, ...seed.events.filter((event) => !sourceEvents.some((existing) => existing.id === event.id))];
+  const checklistEventIds = new Set(events.filter((event) => event.kind === "checklist").map((event) => event.id));
+  const preservedTasks = normalizedTasks.map((task) => checklistEventIds.has(task.sourceEventId ?? "") ? { ...task, archived: true } : task);
+  const existingTaskIds = new Set(preservedTasks.map((task) => task.id));
+  const calendarTasks = createCalendarAlignedTasks(events, raw.subjects, updatedAt).filter((task) => !existingTaskIds.has(task.id));
   return {
     ...seed,
     ...raw,
     version: STORAGE_VERSION,
     subjects: raw.subjects,
-    events: raw.events,
-    tasks,
+    events,
+    tasks: [...preservedTasks, ...calendarTasks],
     sessions,
     chapters: normalizeChapters(raw.chapters, seed, raw.subjects, updatedAt),
-    checkpoints: Array.isArray(raw.checkpoints) ? raw.checkpoints : [],
+    checkpoints: Array.isArray(raw.checkpoints)
+      ? raw.checkpoints.map((checkpoint) => normalizeCheckpoint(checkpoint)).filter((checkpoint): checkpoint is ChapterCheckpoint => Boolean(checkpoint))
+      : [],
     settings: { ...seed.settings, ...(raw.settings ?? {}) },
     updatedAt,
   };

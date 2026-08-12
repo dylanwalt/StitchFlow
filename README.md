@@ -1,6 +1,6 @@
 # StitchFlow
 
-StitchFlow is a gentle, local-first study cockpit for A311, F102, and F108 exam season.
+StitchFlow is a gentle, local-first study cockpit for A311, F102, and F108 exam season. Lecture pre-reading is generated from calendar dates, and each chapter has its own ongoing notes and editable flashcards.
 
 The cockpit is built around a repeatable study loop: understand a small section, retrieve it without notes, practise the exam form, review the useful errors, and revisit later. Tasks explain what they contribute to the study path, while the dashboard keeps the three subjects visible without turning progress into a predicted mark. Each subject also has a chapter runway with separate Read, Summary, Confident, and Review passes; chapter totals can be adjusted in the UI and are grouped into compact 1–10, 11–20 buckets.
 

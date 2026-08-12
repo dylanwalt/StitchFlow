@@ -11,6 +11,7 @@ import type {
   SubjectProgress,
   TaskImpact,
   TaskKind,
+  PlanningRole,
 } from "./types";
 
 export const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -58,6 +59,139 @@ export function phaseForKind(kind: TaskKind): StudyPhase {
   if (kind === "practice") return "practice";
   if (kind === "error-review") return "review";
   return "understand";
+}
+
+/**
+ * Places pre-reading two days before class. If that lands on a weekend,
+ * the preceding Friday keeps the weekend available as an optional buffer.
+ */
+export function lecturePrepDate(lectureDate: string): string {
+  const candidate = addDays(lectureDate, -2);
+  const weekday = parseISODate(candidate).getDay();
+  return weekday === 6 ? addDays(candidate, -1) : weekday === 0 ? addDays(candidate, -2) : candidate;
+}
+
+function createCalendarTask(
+  id: string,
+  subject: Subject,
+  kind: TaskKind,
+  title: string,
+  dueDate: string,
+  estimatedMinutes: number,
+  detail: string,
+  sourceEventId: string,
+  planningRole: PlanningRole,
+  archived: boolean,
+): StudyTask {
+  const task: StudyTask = {
+    id,
+    subjectCode: subject.code,
+    kind,
+    title,
+    detail,
+    dueDate,
+    estimatedMinutes,
+    status: "todo",
+    priority: 1,
+    phase: phaseForKind(kind),
+    impact: defaultImpact(kind),
+    coverageUnits: kind === "learn" ? 1 : 0,
+    archived,
+    sourceEventId,
+    planningRole,
+    fixed: false,
+    createdAt: "",
+  };
+  return { ...task, priority: taskPriority(task, subject, toISODate(new Date())) };
+}
+
+/**
+ * Turns dated lecture and test events into the preparation runway that the
+ * daily plan can surface. Undated/TBC assessments stay visible on the
+ * calendar but do not create fake date-specific tasks.
+ */
+export function createCalendarAlignedTasks(
+  events: AppState["events"],
+  subjects: Subject[],
+  createdAt = new Date().toISOString(),
+): StudyTask[] {
+  const subjectsByCode = new Map(subjects.map((subject) => [subject.code, subject]));
+  const referenceDate = createdAt.slice(0, 10);
+  const tasks: StudyTask[] = [];
+
+  for (const event of events) {
+    if (!event.subjectCode || event.dateConfirmed === false) continue;
+    const subject = subjectsByCode.get(event.subjectCode);
+    if (!subject) continue;
+
+    if (event.kind === "lecture" && event.chapterRange) {
+      const prepDate = lecturePrepDate(event.date);
+      tasks.push({
+        ...createCalendarTask(
+          `calendar-lecture-prep-${event.id}`,
+          subject,
+          "learn",
+          `${subject.code}: pre-read ${event.chapterRange.toLowerCase()} before lecture`,
+          prepDate,
+          60,
+          `Do this two days before the ${formatShortDate(event.date)} lecture (or use the preceding Friday when the two-day point falls on a weekend). Skim for structure, note three questions, and leave the lecture for sense-making rather than first exposure.`,
+          event.id,
+          "lecture-prep",
+          event.date < referenceDate,
+        ),
+        createdAt,
+      });
+    }
+
+    if (event.kind === "test") {
+      const testLabel = event.title.replace(/^test\s*/i, "Test ").trim();
+      const stages: Array<{ suffix: string; offset: number; kind: TaskKind; minutes: number; title: string; detail: string }> = [
+        {
+          suffix: "scope",
+          offset: -14,
+          kind: "learn",
+          minutes: 45,
+          title: `${subject.code}: map the ${testLabel} scope`,
+          detail: `Use the lectures and chapters on the calendar to make a one-page scope map. Mark what is understood, what needs retrieval, and which question types to practise.`,
+        },
+        {
+          suffix: "practice",
+          offset: -7,
+          kind: "practice",
+          minutes: 60,
+          title: `${subject.code}: timed practice for ${testLabel}`,
+          detail: `Do one timed question set for ${testLabel}, mark it, and turn the top two errors into retrieval questions.`,
+        },
+        {
+          suffix: "recall",
+          offset: -2,
+          kind: "recall",
+          minutes: 45,
+          title: `${subject.code}: final recall for ${testLabel}`,
+          detail: `Close the notes and retrieve definitions, formulas, and common traps. Keep the final day light enough to protect recall and sleep.`,
+        },
+      ];
+      for (const stage of stages) {
+        tasks.push({
+          ...createCalendarTask(
+            `calendar-test-prep-${event.id}-${stage.suffix}`,
+            subject,
+            stage.kind,
+            stage.title,
+            addDays(event.date, stage.offset),
+            stage.minutes,
+            stage.detail,
+            event.id,
+            "assessment-prep",
+            event.date < referenceDate,
+          ),
+          createdAt,
+        });
+      }
+    }
+  }
+
+  return tasks;
 }
 
 export function defaultImpact(kind: TaskKind): TaskImpact {
@@ -244,7 +378,7 @@ function getNextPlanningDate(candidate: string, occupied: Set<string>): string {
 export function replanTasks(state: AppState, today = toISODate(new Date())): StudyTask[] {
   const subjects = new Map<SubjectCode, Subject>(state.subjects.map((subject) => [subject.code, subject]));
   const occupied = new Set([
-    ...state.events.filter((event) => event.fixed).map((event) => event.date),
+    ...state.events.filter((event) => event.fixed && event.dateConfirmed !== false).map((event) => event.date),
     ...state.tasks.filter((task) => task.fixed && task.status !== "done").map((task) => task.dueDate),
   ]);
   const gaps = new Map(state.subjects.map((subject) => [subject.code, getSubjectSummary(subject, today, state.tasks, state.chapters, state.events).gap]));

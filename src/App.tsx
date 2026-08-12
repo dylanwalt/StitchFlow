@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, CSSProperties, FormEvent } from "react";
 import { createChapterProgress, emptyCheckpoint, seedState } from "./data";
 import {
@@ -16,6 +16,7 @@ import {
   toISODate,
 } from "./planner";
 import { exportState, loadState, parseImportedState, saveState } from "./storage";
+import { APP_VERSION } from "./version";
 import type {
   AppState,
   ChapterCheck,
@@ -23,6 +24,7 @@ import type {
   ChapterCheckpoint,
   ChapterProgress,
   Confidence,
+  Flashcard,
   StudySessionDraft,
   StudyTask,
   Subject,
@@ -43,6 +45,7 @@ const MASCOT_IMAGES: Record<"hello" | "focus" | "reset" | "celebrate", string> =
   celebrate: "stitch-grin.png",
 };
 const ASSET_BASE = `${import.meta.env.BASE_URL}assets/`;
+const StudyStateContext = createContext<AppState | null>(null);
 
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
   const paths: Record<IconName, string> = {
@@ -224,7 +227,7 @@ function App() {
     setToast("Starter plan restored.");
   }, []);
 
-  return <div className="app-shell">
+  return <StudyStateContext.Provider value={state}><div className="app-shell">
     <Sidebar view={view} setView={setView} onSettings={() => setSettingsOpen(true)} />
     <main className="main-content">
       <Topbar title={VIEW_LABELS[view]} onSettings={() => setSettingsOpen(true)} />
@@ -235,7 +238,7 @@ function App() {
     </main>
     {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} exportBackup={exportBackup} importBackup={importBackup} resetData={resetData} />}
     {toast && <div className="toast" role="status"><span className="toast-dot" />{toast}</div>}
-  </div>;
+  </div></StudyStateContext.Provider>;
 }
 
 function Sidebar({ view, setView, onSettings }: { view: View; setView: (view: View) => void; onSettings: () => void }) {
@@ -248,12 +251,12 @@ function Sidebar({ view, setView, onSettings }: { view: View; setView: (view: Vi
 }
 
 function Topbar({ title, onSettings }: { title: string; onSettings: () => void }) {
-  return <header className="topbar"><div className="mobile-brand"><div className="brand-mark small"><span>✦</span></div><strong>StitchFlow</strong></div><div className="breadcrumbs"><span>StitchFlow</span><b>/</b><strong>{title}</strong></div><button className="icon-button top-settings" aria-label="Open settings" onClick={onSettings}><Icon name="settings" size={18} /></button></header>;
+  return <header className="topbar"><div className="mobile-brand"><div className="brand-mark small"><span>✦</span></div><strong>StitchFlow</strong></div><div className="breadcrumbs"><span>StitchFlow</span><b>/</b><strong>{title}</strong></div><span className="app-version" aria-label={`App version ${APP_VERSION}`}>{APP_VERSION}</span><button className="icon-button top-settings" aria-label="Open settings" onClick={onSettings}><Icon name="settings" size={18} /></button></header>;
 }
 
 function Dashboard({ state, today, setView, completeTask, setTaskProgress, snoozeTask, replan, revisitTask, reviewTask }: { state: AppState; today: string; setView: (view: View) => void; completeTask: (id: string) => void; setTaskProgress: (id: string, percent: TaskCompletionPercent) => void; snoozeTask: (id: string) => void; replan: () => void; revisitTask: (id: string) => void; reviewTask: (id: string, confidence: Confidence) => void }) {
   const pending = state.tasks.filter((task) => task.status !== "done" && !task.archived);
-  const topTasks = [...pending].sort((a, b) => (a.dueDate === today ? -1 : 1) - (b.dueDate === today ? -1 : 1) || b.priority - a.priority || a.dueDate.localeCompare(b.dueDate)).slice(0, 3);
+  const topTasks = [...pending].sort((a, b) => (a.dueDate <= today ? -1 : 1) - (b.dueDate <= today ? -1 : 1) || b.priority - a.priority || a.dueDate.localeCompare(b.dueDate)).slice(0, 3);
   const reviewDue = state.tasks.filter((task) => task.status === "done" && task.revisitDate && task.revisitDate <= today && !task.archived).slice(0, 2);
   const weekStart = addDays(today, -6);
   const weekSessions = state.sessions.filter((session) => session.date >= weekStart && session.date <= today);
@@ -384,15 +387,16 @@ function CalendarView({ events, today }: { events: CalendarEvent[]; today: strin
 }
 
 function EventRow({ event, today }: { event: CalendarEvent; today: string }) {
-  const isPast = event.date < today;
-  return <article className={`event-row ${event.subjectCode?.toLowerCase() ?? "neutral"} ${event.kind} ${isPast ? "past" : ""}`}><div className="event-date"><strong>{new Intl.DateTimeFormat("en-ZA", { day: "2-digit" }).format(new Date(`${event.date}T12:00:00`))}</strong><span>{new Intl.DateTimeFormat("en-ZA", { weekday: "short" }).format(new Date(`${event.date}T12:00:00`))}</span></div><div className="event-line" /><div className="event-body"><div className="event-topline"><span className="event-kind">{event.kind}</span>{event.subjectCode && <span className="event-subject">{event.subjectCode}</span>}{event.durationMinutes && <span className="event-duration">{event.durationMinutes / 60}h</span>}</div><strong>{event.title}</strong><p>{event.chapterRange ? `${event.chapterRange} · ` : ""}{event.detail ?? ""}</p></div>{event.kind === "exam" && <span className="event-badge">exam day</span>}</article>;
+  const isPast = event.dateConfirmed !== false && event.date < today;
+  return <article className={`event-row ${event.subjectCode?.toLowerCase() ?? "neutral"} ${event.kind} ${isPast ? "past" : ""}`}><div className="event-date"><strong>{event.dateConfirmed === false ? "TBC" : new Intl.DateTimeFormat("en-ZA", { day: "2-digit" }).format(new Date(`${event.date}T12:00:00`))}</strong><span>{event.dateConfirmed === false ? "date" : new Intl.DateTimeFormat("en-ZA", { weekday: "short" }).format(new Date(`${event.date}T12:00:00`))}</span></div><div className="event-line" /><div className="event-body"><div className="event-topline"><span className="event-kind">{event.kind}</span>{event.subjectCode && <span className="event-subject">{event.subjectCode}</span>}{event.durationMinutes && <span className="event-duration">{event.durationMinutes / 60}h</span>}{event.dateConfirmed === false && <span className="event-badge">date TBC</span>}</div><strong>{event.title}</strong><p>{event.chapterRange ? `${event.chapterRange} · ` : ""}{event.detail ?? ""}</p></div>{event.kind === "exam" && <span className="event-badge">exam day</span>}</article>;
 }
 
 function SubjectsView({ state, today, saveCheckpoint, logSession, toggleChapterCheck, setChapterCount }: { state: AppState; today: string; saveCheckpoint: (checkpoint: ChapterCheckpoint) => void; logSession: (draft: StudySessionDraft) => void; toggleChapterCheck: (subjectCode: SubjectCode, chapterNumber: number, check: ChapterCheck) => void; setChapterCount: (subjectCode: SubjectCode, total: number) => void }) {
   const [active, setActive] = useState<SubjectCode>("F102");
   const subject = state.subjects.find((item) => item.code === active)!;
   const progress = getSubjectProgress(subject, state.tasks, state.sessions, state.chapters);
-  const checkpoint = state.checkpoints.find((item) => item.subjectCode === active) ?? emptyCheckpoint(active, subject.code === "A311" ? "Last paper" : `Chapter ${progress.coverageUnits}`);
+  const defaultChapter = Math.max(1, subject.currentChapter || 1);
+  const checkpoint = state.checkpoints.find((item) => item.subjectCode === active && item.chapterNumber === defaultChapter) ?? emptyCheckpoint(active, `Chapter ${defaultChapter}`, defaultChapter);
   const papers = state.sessions.filter((session) => session.subjectCode === active && session.kind === "past-paper").slice(-4).reverse();
   const chapterMetrics = getChapterMetrics(active, state.chapters);
   const hasChapters = chapterMetrics.total > 0;
@@ -441,9 +445,18 @@ function ChapterTracker({ subject, chapters, onToggle, onSetTotal }: { subject: 
 }
 
 function CheckpointForm({ checkpoint, onSave }: { checkpoint: ChapterCheckpoint; onSave: (checkpoint: ChapterCheckpoint) => void }) {
-  const [draft, setDraft] = useState(checkpoint);
+  const appState = useContext(StudyStateContext);
+  const availableChapters = appState?.chapters.filter((chapter) => chapter.subjectCode === checkpoint.subjectCode).sort((a, b) => a.chapterNumber - b.chapterNumber) ?? [{ chapterNumber: checkpoint.chapterNumber } as ChapterProgress];
+  const [selectedChapter, setSelectedChapter] = useState(checkpoint.chapterNumber);
+  const selectedCheckpoint = appState?.checkpoints.find((item) => item.subjectCode === checkpoint.subjectCode && item.chapterNumber === selectedChapter) ?? emptyCheckpoint(checkpoint.subjectCode, `Chapter ${selectedChapter}`, selectedChapter);
+  const [draft, setDraft] = useState(selectedCheckpoint);
+  useEffect(() => setDraft(selectedCheckpoint), [selectedCheckpoint.id]);
   const update = (key: keyof ChapterCheckpoint, value: string) => setDraft((current) => ({ ...current, [key]: value, updatedAt: new Date().toISOString() }));
-  return <form className="checkpoint-form" onSubmit={(event) => { event.preventDefault(); onSave(draft); }}><label>Key ideas<textarea value={draft.keyIdeas} onChange={(event) => update("keyIdeas", event.target.value)} placeholder="What is the idea in your own words?" /></label><label>Formulas / terms<textarea value={draft.formulas} onChange={(event) => update("formulas", event.target.value)} placeholder="Only the things worth returning to" /></label><div className="two-field"><label>One uncertainty<textarea value={draft.uncertainty} onChange={(event) => update("uncertainty", event.target.value)} placeholder="What should I ask or revisit?" /></label><label>One exam question<textarea value={draft.examQuestion} onChange={(event) => update("examQuestion", event.target.value)} placeholder="How might this be tested?" /></label></div><button className="button primary-button" type="submit"><Icon name="check" size={15} /> Save checkpoint</button></form>;
+  const updateFlashcard = (id: string, key: keyof Flashcard, value: string) => setDraft((current) => ({ ...current, flashcards: current.flashcards.map((flashcard) => flashcard.id === id ? { ...flashcard, [key]: value } : flashcard), updatedAt: new Date().toISOString() }));
+  const addFlashcard = () => setDraft((current) => ({ ...current, flashcards: [...current.flashcards, { id: `${current.id}-card-${Date.now()}`, front: "", back: "" }], updatedAt: new Date().toISOString() }));
+  const removeFlashcard = (id: string) => setDraft((current) => ({ ...current, flashcards: current.flashcards.filter((flashcard) => flashcard.id !== id), updatedAt: new Date().toISOString() }));
+  const chooseChapter = (chapterNumber: number) => { onSave(draft); setSelectedChapter(chapterNumber); };
+  return <form className="checkpoint-form" onSubmit={(event) => { event.preventDefault(); onSave(draft); }}><div className="checkpoint-tabs" role="tablist" aria-label={`${checkpoint.subjectCode} chapter notes`}>{availableChapters.map((chapter) => <button key={chapter.chapterNumber} type="button" role="tab" aria-selected={chapter.chapterNumber === selectedChapter} className={`checkpoint-tab ${chapter.chapterNumber === selectedChapter ? "selected" : ""}`} onClick={() => chooseChapter(chapter.chapterNumber)}>Chapter {chapter.chapterNumber}</button>)}</div><label>Key ideas<textarea value={draft.keyIdeas} onChange={(event) => update("keyIdeas", event.target.value)} placeholder="What is the idea in your own words?" /></label><label>Formulas / terms<textarea value={draft.formulas} onChange={(event) => update("formulas", event.target.value)} placeholder="Only the things worth returning to" /></label><div className="two-field"><label>One uncertainty<textarea value={draft.uncertainty} onChange={(event) => update("uncertainty", event.target.value)} placeholder="What should I ask or revisit?" /></label><label>One exam question<textarea value={draft.examQuestion} onChange={(event) => update("examQuestion", event.target.value)} placeholder="How might this be tested?" /></label></div><div className="flashcard-editor"><div className="flashcard-editor-head"><div><strong>Flashcards for Chapter {draft.chapterNumber}</strong><p>Keep one definition, trigger, or question per card.</p></div><button className="text-button" type="button" onClick={addFlashcard}><Icon name="plus" size={14} /> Add flashcard</button></div>{draft.flashcards.length === 0 && <p className="flashcard-empty">No cards yet. Add one when a definition is worth retrieving quickly.</p>}{draft.flashcards.map((flashcard, index) => <div className="flashcard-row" key={flashcard.id}><div className="flashcard-number">{index + 1}</div><label>Front<input value={flashcard.front} onChange={(event) => updateFlashcard(flashcard.id, "front", event.target.value)} placeholder="Term or question" /></label><label>Back<input value={flashcard.back} onChange={(event) => updateFlashcard(flashcard.id, "back", event.target.value)} placeholder="Definition or answer" /></label><button className="icon-button flashcard-remove" type="button" onClick={() => removeFlashcard(flashcard.id)} aria-label={`Remove flashcard ${index + 1}`}>×</button></div>)}</div><button className="button primary-button" type="submit"><Icon name="check" size={15} /> Save checkpoint</button></form>;
 }
 
 function PaperLogForm({ subjectCode, today, onSave }: { subjectCode: SubjectCode; today: string; onSave: (draft: StudySessionDraft) => void }) {

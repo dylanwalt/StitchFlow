@@ -55,6 +55,7 @@ textarea { resize: vertical; }
 
 .main-content { width: min(100%, 1440px); min-width: 0; margin: 0 auto; padding: 0 5.7vw 70px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; height: 83px; border-bottom: 1px solid var(--line); }
+.app-version { margin-left: auto; color: #9ca8ae; font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: .06em; }
 .breadcrumbs { display: flex; align-items: center; gap: 10px; color: #a4a9b1; font-size: 12px; }
 .breadcrumbs b { color: #d0cbc4; font-weight: 400; }
 .breadcrumbs strong { color: #56657a; font-weight: 600; }
@@ -275,6 +276,20 @@ h3 { margin-bottom: 4px; font-size: 17px; letter-spacing: -.025em; }
 .checkpoint-form label { display: grid; gap: 5px; color: #87929f; font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: .04em; text-transform: uppercase; }
 .checkpoint-form textarea { min-height: 57px; padding: 10px; border: 1px solid #e7e3dd; border-radius: 8px; outline: 0; color: #56667a; background: #fffefb; font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0; text-transform: none; }
 .checkpoint-form textarea:focus { border-color: #9bc9bd; box-shadow: 0 0 0 3px rgba(155, 201, 189, .13); }
+.checkpoint-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.checkpoint-tab { flex: none; padding: 7px 10px; border: 1px solid #dfe8e5; border-radius: 8px; color: #6f8490; background: #f5faf8; font-family: 'DM Mono', monospace; font-size: 9px; }
+.checkpoint-tab:hover { border-color: #9bc9bd; color: #2c716b; }
+.checkpoint-tab.selected { border-color: #61afa0; color: #fff; background: #61afa0; }
+.flashcard-editor { display: grid; gap: 10px; margin-top: 5px; padding-top: 14px; border-top: 1px solid #e9eee9; }
+.flashcard-editor-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.flashcard-editor-head strong { color: #3d6371; font-family: 'DM Sans', sans-serif; font-size: 13px; letter-spacing: 0; text-transform: none; }
+.flashcard-editor-head p, .flashcard-empty { margin: 3px 0 0; color: #8b9b9e; font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0; text-transform: none; }
+.flashcard-row { display: grid; grid-template-columns: 22px 1fr 1fr 28px; align-items: end; gap: 8px; padding: 10px; border: 1px solid #e4ece8; border-radius: 10px; background: #f9fcfa; }
+.flashcard-row label { display: grid; gap: 5px; color: #87929f; font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: .04em; text-transform: uppercase; }
+.flashcard-row input { min-width: 0; padding: 9px; border: 1px solid #dfe8e5; border-radius: 7px; outline: 0; color: #56667a; background: #fff; font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0; text-transform: none; }
+.flashcard-row input:focus { border-color: #9bc9bd; box-shadow: 0 0 0 3px rgba(155, 201, 189, .13); }
+.flashcard-number { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: #528e84; background: #e0f1eb; font-family: 'DM Mono', monospace; font-size: 9px; }
+.flashcard-remove { align-self: center; width: 28px; height: 28px; color: #9b9690; }
 .two-field { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .practice-stat { display: flex; align-items: baseline; gap: 9px; margin: 25px 0 18px; }
 .practice-stat strong { color: #405f70; font-size: 36px; letter-spacing: -.07em; }

@@ -2,7 +2,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import App from "../App";
 import { seedState } from "../data";
+import { addDays, toISODate } from "../planner";
 import { STORAGE_KEY } from "../storage";
+import { APP_VERSION } from "../version";
 
 function readSavedState() {
   return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as typeof seedState;
@@ -15,6 +17,7 @@ describe("study cockpit interactions", () => {
     expect(screen.getByRole("heading", { name: "A couple of subjects need attention" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Rebalance my plan" })).toBeInTheDocument();
     expect(screen.queryByText("Some ground to cover")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(`App version ${APP_VERSION}`)).toHaveTextContent(APP_VERSION);
   });
 
   it("completes a task and persists its revisit date", async () => {
@@ -22,7 +25,7 @@ describe("study cockpit interactions", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Complete F102 catch-up: chapters 5-7" }));
     await waitFor(() => expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.status).toBe("done"));
-    expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.revisitDate).toBe("2026-08-13");
+    expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.revisitDate).toBe(addDays(toISODate(new Date()), 2));
     expect(screen.getByRole("status")).toHaveTextContent("Task updated");
   });
 
@@ -31,7 +34,7 @@ describe("study cockpit interactions", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Snooze F102 catch-up: chapters 5-7" }));
     await waitFor(() => expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.status).toBe("snoozed"));
-    expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.dueDate).toBe("2026-08-12");
+    expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.dueDate).toBe(addDays(toISODate(new Date()), 1));
     expect(readSavedState().tasks.find((task) => task.id === "today-f108-catchup")?.status).toBe("todo");
   });
 
@@ -58,6 +61,22 @@ describe("study cockpit interactions", () => {
     await waitFor(() => expect(readSavedState().sessions[0]?.kind).toBe("past-paper"));
     expect(readSavedState().sessions[0]?.score).toBe(68);
     expect(readSavedState().sessions[0]?.errorCount).toBe(4);
+  });
+
+  it("keeps notes and flashcards under an individual chapter tab", async () => {
+    window.location.hash = "subjects";
+    render(<App />);
+    fireEvent.click(screen.getByRole("tab", { name: "Chapter 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add flashcard" }));
+    fireEvent.change(screen.getByPlaceholderText("Term or question"), { target: { value: "Morbidity" } });
+    fireEvent.change(screen.getByPlaceholderText("Definition or answer"), { target: { value: "The incidence of illness in a population." } });
+    fireEvent.change(screen.getByLabelText("Key ideas"), { target: { value: "Chapter-specific notes" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save checkpoint" }));
+    await waitFor(() => {
+      const checkpoint = readSavedState().checkpoints.find((item) => item.subjectCode === "F102" && item.chapterNumber === 1);
+      expect(checkpoint?.keyIdeas).toBe("Chapter-specific notes");
+      expect(checkpoint?.flashcards[0]?.front).toBe("Morbidity");
+    });
   });
 
   it("creates a chapter checklist and records individual passes", async () => {
