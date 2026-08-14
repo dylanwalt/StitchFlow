@@ -73,9 +73,9 @@ describe("planner utilities", () => {
   });
 
   it("replans movable work while preserving completed, fixed, and historical work", () => {
-    const fixed = seedState.tasks.find((task) => task.fixed)!;
+    const fixed = { ...seedState.tasks[0], id: "fixed-test-task", fixed: true, dueDate: "2026-08-20" };
     const completed = { ...seedState.tasks[0], status: "done" as const, dueDate: "2026-08-01" };
-    const state = { ...seedState, tasks: [...seedState.tasks.filter((task) => task.id !== seedState.tasks[0].id), completed] };
+    const state = { ...seedState, tasks: [...seedState.tasks.filter((task) => task.id !== seedState.tasks[0].id), fixed, completed] };
     const planned = replanTasks(state, "2026-08-11");
     expect(planned.find((task) => task.id === fixed.id)?.dueDate).toBe(fixed.dueDate);
     expect(planned.find((task) => task.id === completed.id)?.dueDate).toBe("2026-08-01");
@@ -104,12 +104,29 @@ describe("planner utilities", () => {
       sessions: [],
     };
     const migrated = migrateState(legacy, seedState);
-    expect(migrated?.version).toBe(3);
+    expect(migrated?.version).toBe(4);
     expect(migrated?.tasks[0].phase).toBeTruthy();
     expect(parseImportedState("not-json", seedState)).toBeNull();
     expect(parseImportedState(JSON.stringify({ version: 99 }), seedState)).toBeNull();
-    expect(parseImportedState(JSON.stringify(seedState), seedState)?.version).toBe(3);
+    expect(parseImportedState(JSON.stringify(seedState), seedState)?.version).toBe(4);
     expect(migrated?.chapters.filter((chapter) => chapter.subjectCode === "F102")).toHaveLength(36);
     expect(migrated?.chapters.filter((chapter) => chapter.subjectCode === "F102" && chapter.readThrough)).toHaveLength(4);
+  });
+
+  it("removes retired subject records while migrating saved state", () => {
+    const retiredCode = ["A", "311"].join("") as never;
+    const legacy = {
+      ...seedState,
+      version: 3,
+      subjects: [...seedState.subjects, { ...seedState.subjects[0], code: retiredCode }],
+      events: [...seedState.events, { ...seedState.events[0], id: "retired-event", subjectCode: retiredCode }],
+      tasks: [...seedState.tasks, { ...seedState.tasks[0], id: "retired-task", subjectCode: retiredCode }],
+      chapters: [...seedState.chapters, { ...seedState.chapters[0], id: "retired-chapter", subjectCode: retiredCode }],
+    };
+    const migrated = migrateState(legacy, seedState)!;
+    expect(migrated.subjects.map((subject) => subject.code)).toEqual(["F102", "F108"]);
+    expect(migrated.events.some((event) => event.id === "retired-event")).toBe(false);
+    expect(migrated.tasks.some((task) => task.id === "retired-task")).toBe(false);
+    expect(migrated.chapters.some((chapter) => chapter.id === "retired-chapter")).toBe(false);
   });
 });

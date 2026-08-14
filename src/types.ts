@@ -1,4 +1,4 @@
-export type SubjectCode = "A311" | "F102" | "F108";
+export type SubjectCode = "F102" | "F108";
 
 export type TaskKind =
   | "learn"
@@ -36,7 +36,7 @@ export interface Subject {
   code: SubjectCode;
   name: string;
   shortName: string;
-  color: "blue" | "pink" | "yellow";
+  color: "blue" | "pink";
   examDates: string[];
   examDurationMinutes: number;
   currentChapter: number;

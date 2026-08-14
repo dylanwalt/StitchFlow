@@ -18,6 +18,7 @@ describe("study cockpit interactions", () => {
     expect(screen.getByRole("button", { name: "Rebalance my plan" })).toBeInTheDocument();
     expect(screen.queryByText("Some ground to cover")).not.toBeInTheDocument();
     expect(screen.getByLabelText(`App version ${APP_VERSION}`)).toHaveTextContent(APP_VERSION);
+    expect(screen.getByText("Congratulations, you don't have to write A311!")).toBeInTheDocument();
   });
 
   it("completes a task and persists its revisit date", async () => {
@@ -79,22 +80,6 @@ describe("study cockpit interactions", () => {
     });
   });
 
-  it("creates a chapter checklist and records individual passes", async () => {
-    window.location.hash = "subjects";
-    render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /A311/ }));
-    fireEvent.change(screen.getByLabelText("Total chapters"), { target: { value: "12" } });
-    fireEvent.click(screen.getByRole("button", { name: "Create chapter checklist" }));
-    await waitFor(() => expect(readSavedState().chapters.filter((item) => item.subjectCode === "A311")).toHaveLength(12));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Read through this chapter: chapter 1" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Captured a short summary: chapter 1" }));
-    await waitFor(() => {
-      const chapter = readSavedState().chapters.find((item) => item.subjectCode === "A311" && item.chapterNumber === 1);
-      expect(chapter?.readThrough).toBe(true);
-      expect(chapter?.summarized).toBe(true);
-    });
-  });
-
   it("supports honest partial progress on a plan item", async () => {
     window.location.hash = "plan";
     render(<App />);
@@ -114,6 +99,6 @@ describe("study cockpit interactions", () => {
     const backup = new File([JSON.stringify(seedState)], "stitchflow-backup.json", { type: "application/json" });
     fireEvent.change(input, { target: { files: [backup] } });
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Backup restored"));
-    expect(readSavedState().version).toBe(3);
+    expect(readSavedState().version).toBe(4);
   });
 });

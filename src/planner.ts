@@ -301,22 +301,6 @@ export function getSubjectProgress(subject: Subject, tasks: StudyTask[], session
     };
   }
 
-  if (subject.code === "A311") {
-    const plannedPapers = Math.max(1, subjectTasks.filter((task) => task.kind === "practice" && task.fixed).length);
-    const papersDone = subjectTasks.filter((task) => task.kind === "practice" && task.status === "done").length + subjectSessions.filter((session) => session.kind === "past-paper").length;
-    return {
-      subjectCode: subject.code,
-      coveragePercent: Math.min(100, Math.round((papersDone / plannedPapers) * 100)),
-      coverageUnits: papersDone,
-      targetUnits: plannedPapers,
-      retrievalPercent: Math.min(100, Math.round((papersDone / plannedPapers) * 100)),
-      practicePercent: Math.min(100, Math.round((papersDone / plannedPapers) * 100)),
-      completedBlocks,
-      plannedBlocks,
-      label: `${papersDone} paper block${papersDone === 1 ? "" : "s"} logged`,
-    };
-  }
-
   const coverageUnits = Math.min(subject.targetChapter, completedCoverageUnits(subject, tasks));
   return {
     subjectCode: subject.code,
@@ -340,16 +324,14 @@ export function getSubjectSummary(
 ): PlannerSummary {
   const daysToExam = Math.max(0, daysUntil(subject.examDates[0], today));
   const progress = getSubjectProgress(subject, tasks, [], chapters);
-  const scheduled = subject.code === "A311" ? [] : scheduledChapterNumbers(subject.code, today, events);
+  const scheduled = scheduledChapterNumbers(subject.code, today, events);
   const expectedUnits = scheduled.length > 0 ? scheduled.length : progress.targetUnits;
   const delta = progress.coverageUnits - expectedUnits;
-  const gap = subject.code === "A311" ? 0 : Math.max(0, -delta);
-  const aheadBy = subject.code === "A311" ? 0 : Math.max(0, delta);
-  const status = subject.code === "A311"
-    ? "on-track"
-    : scheduled.length > 0
-      ? delta >= 2 ? "ahead" : delta <= -2 ? "behind" : "on-track"
-      : gap >= 4 && daysToExam < 100 ? "behind" : "on-track";
+  const gap = Math.max(0, -delta);
+  const aheadBy = Math.max(0, delta);
+  const status = scheduled.length > 0
+    ? delta >= 2 ? "ahead" : delta <= -2 ? "behind" : "on-track"
+    : gap >= 4 && daysToExam < 100 ? "behind" : "on-track";
   const behind = status === "behind";
   const weeklyCoverage = weeksOfScheduledCoverage(subject.code, today, events, scheduled.length);
   return {
@@ -361,7 +343,7 @@ export function getSubjectSummary(
     expectedUnits,
     weeksBehind: behind ? Math.max(1, Math.ceil(gap / weeklyCoverage)) : 0,
     daysToExam,
-    label: subject.code === "A311" ? "revision mode" : status === "behind" ? `${gap} chapters behind the lecture runway` : status === "ahead" ? `${aheadBy} chapters ahead of the lecture runway` : "on track with the lecture runway",
+    label: status === "behind" ? `${gap} chapters behind the lecture runway` : status === "ahead" ? `${aheadBy} chapters ahead of the lecture runway` : "on track with the lecture runway",
   };
 }
 

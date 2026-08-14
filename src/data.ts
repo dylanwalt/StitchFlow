@@ -13,19 +13,6 @@ const CREATED_AT = "2026-08-11T08:00:00+02:00";
 
 export const subjects: Subject[] = [
   {
-    code: "A311",
-    name: "Actuarial Risk Management",
-    shortName: "Risk management",
-    color: "yellow",
-    examDates: ["2026-10-01", "2026-10-02"],
-    examDurationMinutes: 180,
-    currentChapter: 0,
-    targetChapter: 0,
-    chapterLabel: "Two-paper revision",
-    description: "Keep the knowledge warm with weekly exam-style practice.",
-    progressNote: "Studied during the first six months; now in revision mode.",
-  },
-  {
     code: "F102",
     name: "Life Insurance Principles",
     shortName: "Life insurance",
@@ -101,8 +88,6 @@ const fixedEvents: CalendarEvent[] = [
   makeEvent("f108-test-1", "2026-09-10", "test", "Test 1", "F108", "Core reading test", undefined, 180, true),
   makeEvent("f102-test-2", "2026-09-30", "test", "Test 2", "F102", "September assessment · date to be confirmed", undefined, 180, true, false),
   makeEvent("f108-test-2", "2026-09-30", "test", "Test 2", "F108", "September assessment · date to be confirmed", undefined, 180, true, false),
-  makeEvent("a311-paper-1", "2026-10-01", "exam", "Paper 1", "A311", "Typed, closed-book paper", undefined, 180, true),
-  makeEvent("a311-paper-2", "2026-10-02", "exam", "Paper 2", "A311", "Typed, closed-book paper", undefined, 180, true),
   makeEvent("f102-exam", "2026-11-05", "exam", "F102 exam", "F102", "Three-hour typed exam", undefined, 180, true),
   makeEvent("f108-exam", "2026-11-15", "exam", "F108 exam", "F108", "Three-hour typed exam", undefined, 180, true),
   makeEvent("f108-assignment-1", "2026-07-23", "assignment", "Take-home assignment 1", "F108", "Completed", "Chapters 4-5", undefined, true),
@@ -158,37 +143,12 @@ const lecturePrepEvents: CalendarEvent[] = lectureEvents.map((event) =>
   ),
 );
 
-const practiceFridays = [
-  "2026-08-14",
-  "2026-08-21",
-  "2026-08-28",
-  "2026-09-04",
-  "2026-09-11",
-  "2026-09-18",
-  "2026-09-25",
-].map((date, index) => makeEvent(`a311-practice-${index + 1}`, date, "practice", "A311 past-paper block", "A311", "Three hours: attempt, mark, and log the top errors.", undefined, 180, true));
-
 const immediateTasks: StudyTask[] = [
   makeTask("today-f102-catchup", "F102", "learn", "F102 catch-up: chapters 5-7", "2026-08-11", 75, "First pass only: map the idea, answer the within-chapter question, and leave one short checkpoint. Do not rewrite the chapter.", false, undefined, 3),
   makeTask("today-f108-catchup", "F108", "learn", "F108 catch-up: chapters 10-11", "2026-08-11", 75, "First pass only: understand the map, mark one uncertainty, and move on before annotations become a second textbook.", false, undefined, 2),
-  makeTask("today-a311-review", "A311", "error-review", "A311: review the last paper’s top three errors", "2026-08-11", 45, "Re-answer the three errors from memory, then write the rule or trigger that would prevent each one next time."),
   makeTask("tomorrow-f102-recall", "F102", "recall", "F102: retrieve chapters 1-4 from memory", "2026-08-12", 30, "Close the notes first. Write the structure and key formulas, then check only what you missed."),
   makeTask("tomorrow-f108-checkpoint", "F108", "recall", "F108: write a five-minute chapter checkpoint", "2026-08-12", 25, "Capture key ideas, formulas or terms, one uncertainty, and one exam-style question."),
 ];
-
-const fixedTasks = practiceFridays.map((event) =>
-  makeTask(
-    `task-${event.id}`,
-    "A311",
-    "practice",
-    event.title,
-    event.date,
-    event.durationMinutes ?? 180,
-    event.detail ?? "Attempt and mark a past paper.",
-    true,
-    event.id,
-  ),
-);
 
 const pastPaperTasks: StudyTask[] = [
   makeTask("f102-paper-1", "F102", "practice", "F102 past paper 1: timed attempt", "2026-10-22", 180, "Use an official ASSA paper. Attempt under exam conditions, mark it, and log only the top three errors.", false, undefined, 0, "F102 official past paper 1"),
@@ -200,10 +160,10 @@ const pastPaperTasks: StudyTask[] = [
 ];
 
 export const seedState: AppState = {
-  version: 3,
+  version: 4,
   subjects,
-  events: [...lectureEvents, ...fixedEvents, ...lecturePrepEvents, ...practiceFridays],
-  tasks: [...immediateTasks, ...createCalendarAlignedTasks([...lectureEvents, ...fixedEvents], subjects, CREATED_AT), ...fixedTasks, ...pastPaperTasks].map((task) => ({
+  events: [...lectureEvents, ...fixedEvents, ...lecturePrepEvents],
+  tasks: [...immediateTasks, ...createCalendarAlignedTasks([...lectureEvents, ...fixedEvents], subjects, CREATED_AT), ...pastPaperTasks].map((task) => ({
     ...task,
     priority: taskPriority(task, subjects.find((subject) => subject.code === task.subjectCode)!, "2026-08-11"),
   })),
