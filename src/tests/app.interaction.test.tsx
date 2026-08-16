@@ -11,11 +11,12 @@ function readSavedState() {
 }
 
 describe("study cockpit interactions", () => {
-  it("shows runway status before offering a rebalance", () => {
+  it("shows runway status without exposing guided rebalancing yet", () => {
     window.location.hash = "dashboard";
     render(<App />);
     expect(screen.getByRole("heading", { name: "A couple of subjects need attention" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Rebalance my plan" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Rebalance my plan" })).not.toBeInTheDocument();
+    expect(screen.getByText(/guided rebalancing will come later/i)).toBeInTheDocument();
     expect(screen.queryByText("Some ground to cover")).not.toBeInTheDocument();
     expect(screen.getByLabelText(`App version ${APP_VERSION}`)).toHaveTextContent(APP_VERSION);
     expect(screen.getByText("Congratulations, you don't have to write A311!")).toBeInTheDocument();
@@ -99,6 +100,24 @@ describe("study cockpit interactions", () => {
     const backup = new File([JSON.stringify(seedState)], "stitchflow-backup.json", { type: "application/json" });
     fireEvent.change(input, { target: { files: [backup] } });
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Backup restored"));
-    expect(readSavedState().version).toBe(4);
+    expect(readSavedState().version).toBe(5);
+  });
+
+  it("shows seven calendar days beside each other and keeps lecture detail selectable", () => {
+    window.location.hash = "calendar";
+    render(<App />);
+    expect(screen.getByRole("heading", { name: "Calendar" })).toBeInTheDocument();
+    expect(screen.getByText("Week view")).toBeInTheDocument();
+    expect(screen.getAllByText(/Open space|today/i).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Show next week" }));
+    expect(screen.getByText("This week")).toBeInTheDocument();
+  });
+
+  it("shows ASSA exam signals on the subject page", () => {
+    window.location.hash = "subjects";
+    render(<App />);
+    expect(screen.getByRole("heading", { name: "F102 exam lens" })).toBeInTheDocument();
+    expect(screen.getAllByText(/Examiner trap:/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /Open ASSA index/ })).toHaveAttribute("href", "https://www.actuarialsociety.org.za/document-category/past-paper/");
   });
 });

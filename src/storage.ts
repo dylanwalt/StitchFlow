@@ -1,10 +1,11 @@
 import { createCalendarAlignedTasks, defaultImpact, phaseForKind } from "./planner";
 import type { AppState, ChapterCheckpoint, ChapterProgress, Flashcard, StudySession, StudyTask, TaskKind } from "./types";
 
-export const STORAGE_VERSION = 4;
-export const STORAGE_KEY = "stitchflow.app-state.v4";
-const PREVIOUS_STORAGE_KEY = "stitchflow.app-state.v3";
-const LEGACY_STORAGE_KEY = "stitchflow.app-state.v2";
+export const STORAGE_VERSION = 5;
+export const STORAGE_KEY = "stitchflow.app-state.v5";
+const PREVIOUS_STORAGE_KEY = "stitchflow.app-state.v4";
+const LEGACY_STORAGE_KEY = "stitchflow.app-state.v3";
+const OLDER_STORAGE_KEY = "stitchflow.app-state.v2";
 const ORIGINAL_STORAGE_KEY = "stitchflow.app-state.v1";
 
 function isSubjectCode(value: unknown): value is AppState["subjects"][number]["code"] {
@@ -146,9 +147,12 @@ function normalizeCheckpoint(raw: Partial<ChapterCheckpoint>): ChapterCheckpoint
 export function migrateState(value: unknown, seed: AppState): AppState | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Partial<AppState>;
-  if (raw.version !== 1 && raw.version !== 2 && raw.version !== 3 && raw.version !== STORAGE_VERSION) return null;
+  if (raw.version !== 1 && raw.version !== 2 && raw.version !== 3 && raw.version !== 4 && raw.version !== STORAGE_VERSION) return null;
   if (!Array.isArray(raw.subjects) || !Array.isArray(raw.events) || !Array.isArray(raw.tasks)) return null;
-  const subjects = seed.subjects.map((subject) => raw.subjects?.find((candidate) => candidate.code === subject.code && isSubjectCode(candidate.code)) ?? subject);
+  const subjects = seed.subjects.map((subject) => {
+    const saved = raw.subjects?.find((candidate) => candidate.code === subject.code && isSubjectCode(candidate.code));
+    return saved ? { ...saved, examDates: subject.examDates } : subject;
+  });
   const sourceTasks = raw.tasks.filter((task) => isSubjectCode(task.subjectCode));
   const normalizedTasks = sourceTasks.map((task) => normalizeTask(task)).filter((task): task is StudyTask => Boolean(task));
   if (normalizedTasks.length !== sourceTasks.length) return null;
@@ -157,9 +161,19 @@ export function migrateState(value: unknown, seed: AppState): AppState | null {
     : [];
   const updatedAt = raw.updatedAt ?? seed.updatedAt;
   const sourceEvents = (raw.events ?? []).filter((event) => !event.subjectCode || isSubjectCode(event.subjectCode));
-  const events = [...sourceEvents, ...seed.events.filter((event) => !sourceEvents.some((existing) => existing.id === event.id))];
+  const sourceEventsById = new Map(sourceEvents.map((event) => [event.id, event]));
+  const canonicalEventIds = new Set(seed.events.map((event) => event.id));
+  const events = [
+    ...seed.events.map((event) => sourceEventsById.has(event.id) ? { ...sourceEventsById.get(event.id), ...event } : event),
+    ...sourceEvents.filter((event) => !canonicalEventIds.has(event.id)),
+  ];
   const checklistEventIds = new Set(events.filter((event) => event.kind === "checklist").map((event) => event.id));
-  const preservedTasks = normalizedTasks.map((task) => checklistEventIds.has(task.sourceEventId ?? "") ? { ...task, archived: true } : task);
+  const seedTasksById = new Map(seed.tasks.map((task) => [task.id, task]));
+  const preservedTasks = normalizedTasks.map((task) => {
+    const canonical = seedTasksById.get(task.id);
+    const merged = canonical ? { ...canonical, status: task.status, completionPercent: task.completionPercent, lastCompletedAt: task.lastCompletedAt, revisitDate: task.revisitDate, confidence: task.confidence } : task;
+    return checklistEventIds.has(task.sourceEventId ?? "") ? { ...merged, archived: true } : merged;
+  });
   const existingTaskIds = new Set(preservedTasks.map((task) => task.id));
   const calendarTasks = createCalendarAlignedTasks(events, subjects, updatedAt).filter((task) => !existingTaskIds.has(task.id));
   return {
@@ -181,7 +195,7 @@ export function migrateState(value: unknown, seed: AppState): AppState | null {
 
 export function loadState(seed: AppState): AppState {
   try {
-    const saved = [STORAGE_KEY, PREVIOUS_STORAGE_KEY, LEGACY_STORAGE_KEY, ORIGINAL_STORAGE_KEY]
+    const saved = [STORAGE_KEY, PREVIOUS_STORAGE_KEY, LEGACY_STORAGE_KEY, OLDER_STORAGE_KEY, ORIGINAL_STORAGE_KEY]
       .map((key) => localStorage.getItem(key))
       .find((value): value is string => Boolean(value));
     if (!saved) return seed;

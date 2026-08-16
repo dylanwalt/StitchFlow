@@ -215,7 +215,47 @@ h3 { margin-bottom: 4px; font-size: 17px; letter-spacing: -.025em; }
 .key-dot { width: 7px; height: 7px; border-radius: 50%; }
 .key-dot.blue { background: var(--blue); }
 .key-dot.pink { background: var(--pink); }
+.key-dot.neutral { background: #aab5bd; }
 .calendar-filters { margin-top: 34px; }
+.calendar-board { margin-top: 18px; padding: 18px; border: 1px solid #e2e8e8; border-radius: 17px; background: #fbfdfb; box-shadow: var(--shadow-soft); }
+.calendar-board-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 3px 4px 17px; }
+.calendar-board-head h2 { margin: 4px 0 0; color: #244d63; font-size: 22px; }
+.calendar-nav { display: flex; align-items: center; gap: 8px; }
+.calendar-nav .text-button { display: inline-flex; align-items: center; gap: 5px; }
+.calendar-nav .text-button svg { transform: rotate(180deg); }
+.calendar-nav .text-button.next svg { transform: none; }
+.calendar-week-grid { display: grid; grid-template-columns: repeat(7, minmax(105px, 1fr)); gap: 7px; overflow-x: auto; }
+.calendar-day { min-height: 240px; border: 1px solid #e5ebe8; border-radius: 11px; background: #fff; }
+.calendar-day.today { border-color: #7db8af; box-shadow: 0 0 0 3px rgba(125, 184, 175, .14); }
+.calendar-day-head { display: grid; grid-template-columns: 1fr auto; gap: 2px 5px; padding: 11px 10px 9px; border-bottom: 1px solid #edf0eb; }
+.calendar-day-head span { color: #7a9296; font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; }
+.calendar-day-head strong { color: #36566b; font-family: 'DM Mono', monospace; font-size: 16px; }
+.calendar-day-head i { grid-column: 1 / -1; color: #4e8c7f; font-family: 'DM Mono', monospace; font-size: 8px; font-style: normal; text-transform: uppercase; }
+.calendar-day-events { display: grid; align-content: start; gap: 6px; min-height: 182px; padding: 8px; }
+.calendar-event-card { display: grid; gap: 5px; width: 100%; padding: 9px; border: 1px solid #c9e1e3; border-left: 3px solid var(--blue); border-radius: 8px; color: #557080; background: #f1fbfc; text-align: left; transition: transform .18s ease, box-shadow .18s ease; }
+.calendar-event-card.f108 { border-color: #ecd4e1; border-left-color: var(--pink); background: #fff5fa; }
+.calendar-event-card.neutral { border-color: #d9e0e3; border-left-color: #aab5bd; background: #f7f9f9; }
+.calendar-event-card.exam { background: #fff5dc; }
+.calendar-event-card.past { opacity: .58; }
+.calendar-event-card:hover, .calendar-event-card.selected { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(42, 51, 65, .08); }
+.calendar-event-card.selected { outline: 2px solid #78b5b0; outline-offset: 1px; }
+.calendar-event-card strong { overflow: hidden; color: #385a6e; font-size: 11px; line-height: 1.28; text-overflow: ellipsis; }
+.calendar-event-card.f108 strong { color: #87516e; }
+.calendar-event-card span:last-child { overflow: hidden; color: #7b8f98; font-size: 9px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.calendar-event-kind { color: #6f9aa1; font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+.calendar-event-card.f108 .calendar-event-kind { color: #bd7899; }
+.calendar-empty { margin: 7px 2px; color: #bcc7c7; font-size: 10px; text-align: center; }
+.calendar-board-foot { display: flex; justify-content: space-between; gap: 12px; padding: 12px 4px 1px; color: #83959b; font-size: 10px; }
+.calendar-detail-card { display: flex; align-items: flex-start; gap: 19px; margin-top: 14px; padding: 17px 19px; border: 1px solid #c9e1e3; border-left: 4px solid var(--blue); border-radius: 14px; background: #f5fbfb; }
+.calendar-detail-card.f108 { border-color: #ecd4e1; border-left-color: var(--pink); background: #fff7fb; }
+.calendar-detail-card.neutral { border-color: #d9e0e3; border-left-color: #aab5bd; background: #f8faf9; }
+.calendar-detail-date { display: grid; gap: 5px; min-width: 128px; }
+.calendar-detail-date strong { color: #36566b; font-family: 'DM Mono', monospace; font-size: 11px; line-height: 1.4; }
+.calendar-detail-date span { color: #73919a; font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; }
+.calendar-detail-body { flex: 1; min-width: 0; }
+.calendar-detail-body h3 { margin: 3px 0 6px; color: #2c5267; font-size: 17px; }
+.calendar-detail-body p { margin: 0; color: #607b86; font-size: 12px; line-height: 1.5; }
+.calendar-detail-note { margin-top: 8px !important; color: #4d857b !important; }
 .timeline { display: grid; gap: 35px; margin-top: 11px; }
 .month-group { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 24px; }
 .month-label { padding-top: 8px; color: #344b64; }
@@ -343,6 +383,9 @@ h3 { margin-bottom: 4px; font-size: 17px; letter-spacing: -.025em; }
   .behind-card, .schedule-status-card { grid-column: 1 / -1; }
   .nudge-card { min-height: 90px; }
   .focus-card { max-width: none; }
+  .calendar-board-head { align-items: flex-start; flex-direction: column; }
+  .calendar-week-grid { grid-template-columns: repeat(7, minmax(128px, 1fr)); }
+  .calendar-board-foot { align-items: flex-start; flex-direction: column; }
   .month-group { grid-template-columns: 73px minmax(0, 1fr); gap: 12px; }
 }
 
@@ -366,6 +409,10 @@ h3 { margin-bottom: 4px; font-size: 17px; letter-spacing: -.025em; }
   .calendar-key { flex-wrap: wrap; padding-bottom: 0; }
   .calendar-filters { margin-top: 25px; overflow-x: auto; }
   .filter-pill { white-space: nowrap; }
+  .calendar-board { padding: 12px; }
+  .calendar-nav { width: 100%; justify-content: space-between; }
+  .calendar-detail-card { flex-direction: column; gap: 9px; }
+  .calendar-detail-date { min-width: 0; }
   .month-group { grid-template-columns: 1fr; gap: 8px; }
   .month-label { padding-top: 0; }
   .month-label strong { display: inline; margin-right: 7px; font-size: 18px; }
@@ -540,6 +587,31 @@ h2 { font-size: 24px; }
   .mascot-wrap { transform: scale(.86); transform-origin: bottom right; }
 }
 
+/* ASSA study analysis and chapter tracking */
+.study-analysis-panel { margin-top: 15px; padding: 21px; border: 1px solid #d9dce8; border-radius: 17px; background: linear-gradient(135deg, #fbfbff 0%, #f6fbfa 100%); box-shadow: var(--shadow-soft); }
+.study-analysis-panel.f108 { border-color: #ead8e3; background: linear-gradient(135deg, #fffafd 0%, #fbf8fc 100%); }
+.study-analysis-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.study-analysis-head h3 { margin: 3px 0 4px; color: #314d68; font-size: 20px; }
+.study-analysis-head p { max-width: 670px; margin: 0; color: #657d8a; font-size: 13px; line-height: 1.5; }
+.study-analysis-head .resource-link { flex: none; }
+.study-analysis-note { margin: 12px 0 0; color: #82919d; font-size: 11px; line-height: 1.45; }
+.analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 15px; }
+.analysis-card { display: grid; gap: 7px; padding: 13px; border: 1px solid #e2e6ea; border-radius: 11px; background: rgba(255, 255, 255, .86); }
+.analysis-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.analysis-card-top > span { color: #567486; font-family: 'DM Mono', monospace; font-size: 10px; }
+.analysis-card-top b { padding: 4px 6px; border-radius: 5px; color: #8b6a26; background: #fff2c9; font-family: 'DM Mono', monospace; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.analysis-card-top b.medium { color: #477b70; background: #def2eb; }
+.analysis-card-top b.supporting { color: #6e7591; background: #e8eaf7; }
+.analysis-card > strong { color: #385a6e; font-size: 13px; line-height: 1.35; }
+.analysis-card > p { margin: 0; color: #6d808b; font-size: 11px; line-height: 1.45; }
+.analysis-card > p span, .analysis-questions > span { color: #526c7a; font-weight: 700; }
+.analysis-questions { display: grid; gap: 4px; color: #6b7f8d; font-size: 10px; line-height: 1.35; }
+.analysis-questions a, .analysis-source, .legacy-source-row a { color: #277e88; text-decoration: none; }
+.analysis-questions a:hover, .analysis-source:hover, .legacy-source-row a:hover { text-decoration: underline; }
+.analysis-source { display: inline-flex; align-items: center; gap: 4px; width: fit-content; color: #728c98; font-family: 'DM Mono', monospace; font-size: 9px; }
+.legacy-source-row { display: flex; flex-wrap: wrap; gap: 7px 12px; margin-top: 13px; color: #82919d; font-size: 10px; }
+.legacy-source-row span { color: #617886; font-weight: 700; }
+
 /* Chapter tracking and honest partial progress */
 .chapter-tracker { margin-top: 15px; padding: 21px; border: 1px solid #cfe1e2; border-radius: 17px; background: linear-gradient(135deg, #f5fcfb 0%, #f7faff 100%); box-shadow: var(--shadow-soft); }
 .chapter-tracker-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
@@ -628,6 +700,7 @@ h2 { font-size: 24px; }
 .schedule-status-card.behind .text-button { color: #a15e54; }
 
 @media (max-width: 820px) {
+  .analysis-grid { grid-template-columns: 1fr; }
   .chapter-count-form { align-items: stretch; flex-direction: column; gap: 13px; }
   .chapter-count-action { align-items: stretch; }
   .chapter-count-action input { flex: 1; width: auto; }
@@ -640,6 +713,8 @@ h2 { font-size: 24px; }
 }
 
 @media (max-width: 560px) {
+  .study-analysis-panel { padding: 16px; }
+  .study-analysis-head { display: grid; gap: 8px; }
   .chapter-tracker { padding: 16px; }
   .chapter-tracker-head { display: grid; gap: 8px; }
   .chapter-tracker-head .text-button { justify-self: start; }

@@ -17,7 +17,7 @@ export const subjects: Subject[] = [
     name: "Life Insurance Principles",
     shortName: "Life insurance",
     color: "blue",
-    examDates: ["2026-11-05"],
+    examDates: ["2026-11-16"],
     examDurationMinutes: 180,
     currentChapter: 4,
     targetChapter: 36,
@@ -30,7 +30,7 @@ export const subjects: Subject[] = [
     name: "Health, Social & Employee Benefits",
     shortName: "Benefits",
     color: "pink",
-    examDates: ["2026-11-15"],
+    examDates: ["2026-11-05"],
     examDurationMinutes: 180,
     currentChapter: 8,
     targetChapter: 23,
@@ -88,8 +88,8 @@ const fixedEvents: CalendarEvent[] = [
   makeEvent("f108-test-1", "2026-09-10", "test", "Test 1", "F108", "Core reading test", undefined, 180, true),
   makeEvent("f102-test-2", "2026-09-30", "test", "Test 2", "F102", "September assessment · date to be confirmed", undefined, 180, true, false),
   makeEvent("f108-test-2", "2026-09-30", "test", "Test 2", "F108", "September assessment · date to be confirmed", undefined, 180, true, false),
-  makeEvent("f102-exam", "2026-11-05", "exam", "F102 exam", "F102", "Three-hour typed exam", undefined, 180, true),
-  makeEvent("f108-exam", "2026-11-15", "exam", "F108 exam", "F108", "Three-hour typed exam", undefined, 180, true),
+  makeEvent("f102-exam", "2026-11-16", "exam", "F102 exam", "F102", "Three-hour typed exam", undefined, 180, true),
+  makeEvent("f108-exam", "2026-11-05", "exam", "F108 exam", "F108", "Three-hour typed exam", undefined, 180, true),
   makeEvent("f108-assignment-1", "2026-07-23", "assignment", "Take-home assignment 1", "F108", "Completed", "Chapters 4-5", undefined, true),
   makeEvent("f102-assignment-1", "2026-08-03", "assignment", "Assignment 1", "F102", "Completed", "Chapters 4, 16, 17", undefined, true),
   makeEvent("f108-assignment-2", "2026-10-01", "assignment", "Take-home assignment 2", "F108", "Due alongside the lecture block", "Chapters 20, 22", undefined, true),
@@ -151,12 +151,12 @@ const immediateTasks: StudyTask[] = [
 ];
 
 const pastPaperTasks: StudyTask[] = [
-  makeTask("f102-paper-1", "F102", "practice", "F102 past paper 1: timed attempt", "2026-10-22", 180, "Use an official ASSA paper. Attempt under exam conditions, mark it, and log only the top three errors.", false, undefined, 0, "F102 official past paper 1"),
-  makeTask("f102-paper-2", "F102", "practice", "F102 past paper 2: timed attempt", "2026-10-29", 180, "Attempt first, then mark with the official solutions or your notes. Record the topics that cost time.", false, undefined, 0, "F102 official past paper 2"),
-  makeTask("f102-paper-3", "F102", "practice", "F102 past paper 3: targeted re-attempt", "2026-11-03", 150, "Re-attempt the questions that were slow or wrong. Finish with a short confidence check.", false, undefined, 0, "F102 official past paper 3"),
-  makeTask("f108-paper-1", "F108", "practice", "F108 past paper 1: timed attempt", "2026-10-30", 180, "Use an official ASSA paper. Attempt, mark, and keep the errors that should become retrieval questions.", false, undefined, 0, "F108 official past paper 1"),
-  makeTask("f108-paper-2", "F108", "practice", "F108 past paper 2: timed attempt", "2026-11-06", 180, "Attempt under time pressure, then identify the two topics that deserve the next review block.", false, undefined, 0, "F108 official past paper 2"),
-  makeTask("f108-paper-3", "F108", "practice", "F108 past paper 3: final targeted paper", "2026-11-12", 150, "Keep this final paper focused: practise the weak areas and protect rest before exam day.", false, undefined, 0, "F108 official past paper 3"),
+  makeTask("f102-paper-1", "F102", "practice", "F102 past paper 1: timed attempt", "2026-11-02", 180, "Use an official ASSA paper. Attempt under exam conditions, mark it, and log only the top three errors.", false, undefined, 0, "F102 official past paper 1"),
+  makeTask("f102-paper-2", "F102", "practice", "F102 past paper 2: timed attempt", "2026-11-07", 180, "Attempt first, then mark with the official solutions or your notes. Record the topics that cost time.", false, undefined, 0, "F102 official past paper 2"),
+  makeTask("f102-paper-3", "F102", "practice", "F102 past paper 3: targeted re-attempt", "2026-11-12", 150, "Re-attempt the questions that were slow or wrong. Finish with a short confidence check.", false, undefined, 0, "F102 official past paper 3"),
+  makeTask("f108-paper-1", "F108", "practice", "F108 past paper 1: timed attempt", "2026-10-22", 180, "Use an official ASSA paper. Attempt, mark, and keep the errors that should become retrieval questions.", false, undefined, 0, "F108 official past paper 1"),
+  makeTask("f108-paper-2", "F108", "practice", "F108 past paper 2: timed attempt", "2026-10-29", 180, "Attempt under time pressure, then identify the two topics that deserve the next review block.", false, undefined, 0, "F108 official past paper 2"),
+  makeTask("f108-paper-3", "F108", "practice", "F108 past paper 3: final targeted paper", "2026-11-03", 150, "Keep this final paper focused: practise the weak areas and protect rest before exam day.", false, undefined, 0, "F108 official past paper 3"),
 ];
 
 export const seedState: AppState = {

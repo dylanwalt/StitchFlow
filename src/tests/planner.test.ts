@@ -85,8 +85,10 @@ describe("planner utilities", () => {
   it("keeps a practice runway in the final two weeks", () => {
     const f102PaperDates = seedState.tasks.filter((task) => task.paperName?.startsWith("F102")).map((task) => task.dueDate);
     const f108PaperDates = seedState.tasks.filter((task) => task.paperName?.startsWith("F108")).map((task) => task.dueDate);
-    expect(f102PaperDates).toEqual(["2026-10-22", "2026-10-29", "2026-11-03"]);
-    expect(f108PaperDates).toEqual(["2026-10-30", "2026-11-06", "2026-11-12"]);
+    expect(f102PaperDates).toEqual(["2026-11-02", "2026-11-07", "2026-11-12"]);
+    expect(f108PaperDates).toEqual(["2026-10-22", "2026-10-29", "2026-11-03"]);
+    expect(seedState.subjects.find((subject) => subject.code === "F102")?.examDates).toEqual(["2026-11-16"]);
+    expect(seedState.subjects.find((subject) => subject.code === "F108")?.examDates).toEqual(["2026-11-05"]);
   });
 
   it("uses confidence to schedule a gentle next review", () => {
@@ -104,11 +106,11 @@ describe("planner utilities", () => {
       sessions: [],
     };
     const migrated = migrateState(legacy, seedState);
-    expect(migrated?.version).toBe(4);
+    expect(migrated?.version).toBe(5);
     expect(migrated?.tasks[0].phase).toBeTruthy();
     expect(parseImportedState("not-json", seedState)).toBeNull();
     expect(parseImportedState(JSON.stringify({ version: 99 }), seedState)).toBeNull();
-    expect(parseImportedState(JSON.stringify(seedState), seedState)?.version).toBe(4);
+    expect(parseImportedState(JSON.stringify(seedState), seedState)?.version).toBe(5);
     expect(migrated?.chapters.filter((chapter) => chapter.subjectCode === "F102")).toHaveLength(36);
     expect(migrated?.chapters.filter((chapter) => chapter.subjectCode === "F102" && chapter.readThrough)).toHaveLength(4);
   });
