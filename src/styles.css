@@ -539,11 +539,6 @@ h2 { font-size: 24px; }
 .daily-exam-columns p { margin: 5px 0 0; color: #6c7f88; font-size: 11px; line-height: 1.4; }
 .daily-exam-lens .analysis-source { margin-top: 11px; }
 .lens-note { margin: 8px 0 0; color: #84939b; font-size: 10px; line-height: 1.4; }
-.confirmation-panel { padding: 18px 20px; border: 1px solid #e4d6bd; border-radius: 16px; background: #fffaf0; box-shadow: var(--shadow-soft); }
-.confirmation-panel h3 { margin: 5px 0 3px; color: #765734; font-size: 16px; }
-.confirmation-panel > p { margin: 0; color: #8b7966; font-size: 11px; line-height: 1.4; }
-.confirmation-panel ol { display: grid; gap: 7px; margin: 12px 0 0; padding-left: 20px; color: #745f4d; font-size: 11px; line-height: 1.4; }
-.confirmation-panel li::marker { color: #c28d43; font-family: 'DM Mono', monospace; font-size: 10px; }
 .focus-card { padding: 20px; border-color: #b9dcd8; background: #e9f8f5; }
 .timer-companion { display: flex; align-items: center; gap: 8px; margin-top: 9px; color: #4c8079; font-size: 12px; }
 .mascot-wrap.mini { position: relative; right: auto; bottom: auto; width: 35px; height: 30px; transform: none; }

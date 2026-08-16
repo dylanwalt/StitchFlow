@@ -20,8 +20,7 @@ describe("study cockpit interactions", () => {
     expect(screen.queryByText("Some ground to cover")).not.toBeInTheDocument();
     expect(screen.getByLabelText(`App version ${APP_VERSION}`)).toHaveTextContent(APP_VERSION);
     expect(screen.getByText("Congratulations, you don't have to write A311!")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Confirm the remaining details" })).toBeInTheDocument();
-    expect(screen.getByText(/Which subject is the missing Thursday lecture/i)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Confirm the remaining details" })).not.toBeInTheDocument();
   });
 
   it("completes a task and persists its revisit date", async () => {
