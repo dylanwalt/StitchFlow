@@ -20,6 +20,8 @@ describe("study cockpit interactions", () => {
     expect(screen.queryByText("Some ground to cover")).not.toBeInTheDocument();
     expect(screen.getByLabelText(`App version ${APP_VERSION}`)).toHaveTextContent(APP_VERSION);
     expect(screen.getByText("Congratulations, you don't have to write A311!")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Confirm the remaining details" })).toBeInTheDocument();
+    expect(screen.getByText(/Which subject is the missing Thursday lecture/i)).toBeInTheDocument();
   });
 
   it("completes a task and persists its revisit date", async () => {
@@ -47,6 +49,14 @@ describe("study cockpit interactions", () => {
     await waitFor(() => expect(readSavedState().sessions).toHaveLength(1));
     expect(readSavedState().sessions[0].kind).toBe("focus");
     expect(screen.getByRole("status")).toHaveTextContent("minutes logged");
+  });
+
+  it("surfaces a daily exam lens on the plan", () => {
+    window.location.hash = "plan";
+    render(<App />);
+    expect(screen.getByRole("heading", { name: /F102/ })).toBeInTheDocument();
+    expect(screen.getByLabelText("Daily exam lens")).toBeInTheDocument();
+    expect(screen.getByText(/Curated priority signal/i)).toBeInTheDocument();
   });
 
   it("saves a short checkpoint and a structured paper record", async () => {
@@ -119,5 +129,7 @@ describe("study cockpit interactions", () => {
     expect(screen.getByRole("heading", { name: "F102 exam lens" })).toBeInTheDocument();
     expect(screen.getAllByText(/Examiner trap:/).length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /Open ASSA index/ })).toHaveAttribute("href", "https://www.actuarialsociety.org.za/document-category/past-paper/");
+    expect(screen.getByText("Official source pack")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /F102 semester 1 paper archive/ })).toHaveAttribute("href", "https://www.actuarialsociety.org.za/document-category/semester-1-f102-life-insurance-fellowship-principles/");
   });
 });

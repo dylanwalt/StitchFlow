@@ -19,10 +19,19 @@ export interface SubjectStudyAnalysis {
   summary: string;
   sourceNote: string;
   sourceUrl: string;
+  sourceLinks: Array<{ label: string; url: string }>;
   insights: StudyInsight[];
 }
 
 const ASSA_PAST_PAPERS_URL = "https://www.actuarialsociety.org.za/document-category/past-paper/";
+const F102_S1_PAPERS_URL = "https://www.actuarialsociety.org.za/document-category/semester-1-f102-life-insurance-fellowship-principles/";
+const F102_S2_PAPERS_URL = "https://www.actuarialsociety.org.za/document-category/semester-2-f102-life-insurance-fellowship-principles/";
+const F108_S1_PAPERS_URL = "https://www.actuarialsociety.org.za/document-category/semester-1-f108-health-social-and-employee-benefitts/";
+const F108_S2_PAPERS_URL = "https://www.actuarialsociety.org.za/document-category/semester-2-f108-health-social-and-employee-benefits-fellowship-principles/";
+const F101_PAPERS_URL = "https://www.actuarialsociety.org.za/document-category/f101-health-care-fellowship-principles/";
+const F104_PAPERS_URL = "https://www.actuarialsociety.org.za/document-category/f104-retirement-and-related-benefit/";
+const F108_SYLLABUS_URL = "https://www.actuarialsociety.org.za/wp-content/uploads/2025/07/F108-HEALTH-SOCIAL-AND-EMPLOYEE-BENEFITS.pdf";
+const F101_SYLLABUS_URL = "https://www.actuarialsociety.org.za/wp-content/uploads/2025/07/F101-HEALTH-AND-CARE-PRINCIPLES-1.pdf";
 const F102_2025_PAPER_URL = "https://www.actuarialsociety.org.za/wp-content/uploads/2025/12/F102-Examination-Paper-S2-2025.pdf";
 const F108_2026_REPORT_URL = "https://www.actuarialsociety.org.za/wp-content/uploads/2026/07/F108-June-2026-Examiners-Report.pdf";
 const F101_2024_REPORT_URL = "https://www.actuarialsociety.org.za/wp-content/uploads/2025/07/F101-JUNE-2024-EXAMINERS-REPORT-1.pdf";
@@ -35,6 +44,11 @@ export const studyAnalysis: Record<SubjectCode, SubjectStudyAnalysis> = {
     summary: "Use the paper as a signal for how broad principles are turned into applied, scenario-led questions.",
     sourceNote: "Curated from the ASSA past-paper index and the F102 November 2025 paper. Add the course-note page numbers when they are available.",
     sourceUrl: ASSA_PAST_PAPERS_URL,
+    sourceLinks: [
+      { label: "F102 semester 1 paper archive", url: F102_S1_PAPERS_URL },
+      { label: "F102 semester 2 paper archive", url: F102_S2_PAPERS_URL },
+      { label: "F102 November 2025 paper", url: F102_2025_PAPER_URL },
+    ],
     insights: [
       {
         id: "f102-with-profits",
@@ -102,8 +116,17 @@ export const studyAnalysis: Record<SubjectCode, SubjectStudyAnalysis> = {
     subjectCode: "F108",
     title: "F108 exam lens",
     summary: "F108 combines the former F101 and F104 material, so practise both health/benefit applications and retirement/funding reasoning.",
-    sourceNote: "Curated from ASSA’s F108 June 2026 examiner report, with the F101 June 2024 and F104 November 2023 reports retained as transition evidence.",
+    sourceNote: "Curated from ASSA's F108 June 2026 examiner report, with the F101 June 2024 and F104 November 2023 reports retained as transition evidence.",
     sourceUrl: ASSA_PAST_PAPERS_URL,
+    sourceLinks: [
+      { label: "F108 semester 1 paper archive", url: F108_S1_PAPERS_URL },
+      { label: "F108 semester 2 paper archive", url: F108_S2_PAPERS_URL },
+      { label: "F108 syllabus", url: F108_SYLLABUS_URL },
+      { label: "F101 syllabus (legacy health material)", url: F101_SYLLABUS_URL },
+      { label: "F101 paper archive", url: F101_PAPERS_URL },
+      { label: "F104 paper archive", url: F104_PAPERS_URL },
+      { label: "F108 June 2026 examiner report", url: F108_2026_REPORT_URL },
+    ],
     insights: [
       {
         id: "f108-social-security",
@@ -163,3 +186,8 @@ export const legacyF108Sources = [
   { label: "F101 June 2024 examiner report", url: F101_2024_REPORT_URL },
   { label: "F104 November 2023 examiner report", url: F104_2023_REPORT_URL },
 ];
+
+export function getDailyStudyInsight(subjectCode: SubjectCode): StudyInsight {
+  const insights = studyAnalysis[subjectCode].insights;
+  return insights.find((insight) => insight.priority === "high") ?? insights[0];
+}

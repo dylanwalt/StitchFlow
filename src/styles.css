@@ -526,6 +526,24 @@ h2 { font-size: 24px; }
 .guidance-number { color: #2a91c1; font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 700; }
 .plan-guidance strong { display: block; color: #2c5d78; font-size: 13px; }
 .plan-guidance p { margin: 4px 0 0; color: #6d8494; font-size: 12px; line-height: 1.5; }
+.daily-exam-lens { margin-top: 14px; padding: 18px 19px; border: 1px solid #c8dfe9; border-radius: 15px; background: linear-gradient(135deg, #f1fbff 0%, #f9fcf5 100%); }
+.daily-exam-lens.f108 { border-color: #ead5e1; background: linear-gradient(135deg, #fff8fc 0%, #f8fbff 100%); }
+.daily-exam-lens-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.daily-exam-lens-head h2 { margin: 3px 0 0; color: #28516a; font-size: 18px; }
+.daily-exam-lens-head h2 span { color: #708792; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; }
+.lens-tag { padding: 5px 7px; border-radius: 6px; color: #2b7c91; background: #dff3f7; font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.daily-exam-focus { margin: 11px 0 0; color: #506d7b; font-size: 12px; line-height: 1.45; }
+.daily-exam-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.daily-exam-columns > div { padding: 10px; border-radius: 9px; background: rgba(255, 255, 255, .72); }
+.daily-exam-columns span { color: #3c7283; font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.daily-exam-columns p { margin: 5px 0 0; color: #6c7f88; font-size: 11px; line-height: 1.4; }
+.daily-exam-lens .analysis-source { margin-top: 11px; }
+.lens-note { margin: 8px 0 0; color: #84939b; font-size: 10px; line-height: 1.4; }
+.confirmation-panel { padding: 18px 20px; border: 1px solid #e4d6bd; border-radius: 16px; background: #fffaf0; box-shadow: var(--shadow-soft); }
+.confirmation-panel h3 { margin: 5px 0 3px; color: #765734; font-size: 16px; }
+.confirmation-panel > p { margin: 0; color: #8b7966; font-size: 11px; line-height: 1.4; }
+.confirmation-panel ol { display: grid; gap: 7px; margin: 12px 0 0; padding-left: 20px; color: #745f4d; font-size: 11px; line-height: 1.4; }
+.confirmation-panel li::marker { color: #c28d43; font-family: 'DM Mono', monospace; font-size: 10px; }
 .focus-card { padding: 20px; border-color: #b9dcd8; background: #e9f8f5; }
 .timer-companion { display: flex; align-items: center; gap: 8px; margin-top: 9px; color: #4c8079; font-size: 12px; }
 .mascot-wrap.mini { position: relative; right: auto; bottom: auto; width: 35px; height: 30px; transform: none; }
@@ -609,6 +627,11 @@ h2 { font-size: 24px; }
 .analysis-questions a, .analysis-source, .legacy-source-row a { color: #277e88; text-decoration: none; }
 .analysis-questions a:hover, .analysis-source:hover, .legacy-source-row a:hover { text-decoration: underline; }
 .analysis-source { display: inline-flex; align-items: center; gap: 4px; width: fit-content; color: #728c98; font-family: 'DM Mono', monospace; font-size: 9px; }
+.analysis-source-pack { display: grid; gap: 7px; margin-top: 15px; padding-top: 12px; border-top: 1px solid #e5e7ec; }
+.analysis-source-pack > span { color: #5b7280; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.analysis-source-pack > div { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.analysis-source-pack a { display: inline-flex; align-items: center; gap: 3px; color: #277e88; font-size: 10px; text-decoration: none; }
+.analysis-source-pack a:hover { text-decoration: underline; }
 .legacy-source-row { display: flex; flex-wrap: wrap; gap: 7px 12px; margin-top: 13px; color: #82919d; font-size: 10px; }
 .legacy-source-row span { color: #617886; font-weight: 700; }
 
@@ -715,6 +738,9 @@ h2 { font-size: 24px; }
 @media (max-width: 560px) {
   .study-analysis-panel { padding: 16px; }
   .study-analysis-head { display: grid; gap: 8px; }
+  .daily-exam-lens { padding: 16px; }
+  .daily-exam-lens-head { display: grid; gap: 8px; }
+  .daily-exam-columns { grid-template-columns: 1fr; }
   .chapter-tracker { padding: 16px; }
   .chapter-tracker-head { display: grid; gap: 8px; }
   .chapter-tracker-head .text-button { justify-self: start; }
