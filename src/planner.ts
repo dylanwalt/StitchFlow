@@ -137,7 +137,7 @@ export function createCalendarAlignedTasks(
           `Do this two days before the ${formatShortDate(event.date)} lecture (or use the preceding Friday when the two-day point falls on a weekend). Skim for structure, note three questions, and leave the lecture for sense-making rather than first exposure.`,
           event.id,
           "lecture-prep",
-          event.date < referenceDate,
+          prepDate < referenceDate,
         ),
         createdAt,
       });
@@ -145,6 +145,7 @@ export function createCalendarAlignedTasks(
 
     if (event.kind === "test") {
       const testLabel = event.title.replace(/^test\s*/i, "Test ").trim();
+      const scope = event.chapterRange ? ` Scope: ${event.chapterRange}.` : "";
       const stages: Array<{ suffix: string; offset: number; kind: TaskKind; minutes: number; title: string; detail: string }> = [
         {
           suffix: "scope",
@@ -152,7 +153,7 @@ export function createCalendarAlignedTasks(
           kind: "learn",
           minutes: 45,
           title: `${subject.code}: map the ${testLabel} scope`,
-          detail: `Use the lectures and chapters on the calendar to make a one-page scope map. Mark what is understood, what needs retrieval, and which question types to practise.`,
+          detail: `Use the lectures and chapters on the calendar to make a one-page scope map.${scope} Mark what is understood, what needs retrieval, and which question types to practise.`,
         },
         {
           suffix: "practice",
@@ -160,7 +161,7 @@ export function createCalendarAlignedTasks(
           kind: "practice",
           minutes: 60,
           title: `${subject.code}: timed practice for ${testLabel}`,
-          detail: `Do one timed question set for ${testLabel}, mark it, and turn the top two errors into retrieval questions.`,
+          detail: `Do one timed question set for ${testLabel}.${scope} Mark it, and turn the top two errors into retrieval questions.`,
         },
         {
           suffix: "recall",
@@ -168,7 +169,7 @@ export function createCalendarAlignedTasks(
           kind: "recall",
           minutes: 45,
           title: `${subject.code}: final recall for ${testLabel}`,
-          detail: `Close the notes and retrieve definitions, formulas, and common traps. Keep the final day light enough to protect recall and sleep.`,
+          detail: `Close the notes and retrieve definitions, formulas, and common traps for ${testLabel}.${scope} Keep the final day light enough to protect recall and sleep.`,
         },
       ];
       for (const stage of stages) {
@@ -183,7 +184,7 @@ export function createCalendarAlignedTasks(
             stage.detail,
             event.id,
             "assessment-prep",
-            event.date < referenceDate,
+            addDays(event.date, stage.offset) < referenceDate,
           ),
           createdAt,
         });
@@ -233,7 +234,11 @@ export function taskPriority(
   const gapPressure = subject.targetChapter > 0 ? (gap / subject.targetChapter) * 24 : 0;
   const kindWeight = task.kind === "practice" ? 14 : task.kind === "error-review" ? 12 : task.kind === "recall" ? 9 : 5;
   const fixedWeight = task.fixed ? 8 : 0;
-  return Math.round(urgency + overdue + dueSoon + gapPressure + kindWeight + fixedWeight);
+  const lectureReadinessWeight = task.planningRole === "lecture-prep" ? (task.dueDate < today ? 45 : 100) : 0;
+  const assessmentWeight = task.planningRole === "assessment-prep" ? 35 : 0;
+  const catchUpWeight = task.kind === "learn" && (task.coverageUnits ?? 0) > 0 ? 18 : 0;
+  const paperWeight = task.paperName ? 4 : 0;
+  return Math.round(urgency + overdue + dueSoon + gapPressure + kindWeight + fixedWeight + lectureReadinessWeight + assessmentWeight + catchUpWeight + paperWeight);
 }
 
 function completedCoverageUnits(subject: Subject, tasks: StudyTask[]): number {
@@ -246,7 +251,7 @@ function completedCount(tasks: StudyTask[], predicate: (task: StudyTask) => bool
   return tasks.filter((task) => task.status === "done" && !task.archived && predicate(task)).length;
 }
 
-function chapterNumbersFromRange(value: string): number[] {
+export function chapterNumbersFromRange(value: string): number[] {
   const cleaned = value.replace(/sections?\s+\d+/gi, "");
   const numbers: number[] = [];
   for (const token of cleaned.match(/\d+\s*-\s*\d+|\d+/g) ?? []) {
@@ -398,12 +403,13 @@ export function replanTasks(state: AppState, today = toISODate(new Date())): Stu
     const nextDate = assignments.get(task.id);
     if (!nextDate) return task;
     const subject = subjects.get(task.subjectCode)!;
-    return {
+    const updatedTask = {
       ...task,
       dueDate: nextDate,
       status: task.status === "snoozed" ? "todo" : task.status,
-      priority: taskPriority(task, subject, today, gaps.get(task.subjectCode) ?? 0),
+      manuallyScheduled: true,
     };
+    return { ...updatedTask, priority: taskPriority(updatedTask, subject, today, gaps.get(task.subjectCode) ?? 0) };
   });
 }
 

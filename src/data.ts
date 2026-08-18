@@ -17,11 +17,13 @@ export const subjects: Subject[] = [
     name: "Life Insurance Principles",
     shortName: "Life insurance",
     color: "blue",
-    examDates: ["2026-11-16"],
+    examDates: ["2026-11-05"],
     examDurationMinutes: 180,
     currentChapter: 4,
     targetChapter: 36,
+    syllabusChapterTotal: 36,
     chapterLabel: "Chapter progress",
+    supplementalSections: ["Glossary"],
     description: "Build understanding first, then convert it into timed answers.",
     progressNote: "Annotations are complete through chapter 4.",
   },
@@ -30,11 +32,13 @@ export const subjects: Subject[] = [
     name: "Health, Social & Employee Benefits",
     shortName: "Benefits",
     color: "pink",
-    examDates: ["2026-11-05"],
+    examDates: ["2026-11-16"],
     examDurationMinutes: 180,
     currentChapter: 8,
     targetChapter: 23,
+    syllabusChapterTotal: 23,
     chapterLabel: "Chapter progress",
+    supplementalSections: ["Glossary", "Acronyms"],
     description: "Keep the core reading moving while protecting time for practice.",
     progressNote: "Annotations are complete through chapter 8.",
   },
@@ -61,6 +65,7 @@ const lectureEvents: CalendarEvent[] = [
   makeEvent("f102-jul-27", "2026-07-27", "lecture", "Regular time", "F102", "With-profits products and methods of distributing profits", "Chapters 8-10"),
   makeEvent("f102-aug-03", "2026-08-03", "lecture", "Regular time", "F102", "Management of unit-linked contracts", "Chapters 4, 16, 17"),
   makeEvent("f102-aug-17", "2026-08-17", "lecture", "Regular time", "F102", "Risks and product design", "Chapters 13-15, 20"),
+  makeEvent("f102-aug-20", "2026-08-20", "lecture", "09:00-12:00", "F102", "Catch-up lecture", "Chapters 11-12", 180),
   makeEvent("f102-aug-24", "2026-08-24", "lecture", "Regular time", "F102", "Setting assumptions and embedded value", "Chapter 19 section 2, 21, 22"),
   makeEvent("f102-aug-31", "2026-08-31", "lecture", "Regular time", "F102", "Reserves, capital requirements and investments", "Chapters 23, 24, 33"),
   makeEvent("f102-sep-14", "2026-09-14", "lecture", "Regular time", "F102", "Data and models", "Chapters 18, 19, 32"),
@@ -84,12 +89,12 @@ const lectureEvents: CalendarEvent[] = [
 ];
 
 const fixedEvents: CalendarEvent[] = [
-  makeEvent("f102-test-1", "2026-09-07", "test", "Test 1", "F102", "Lab to be confirmed", undefined, 180, true),
-  makeEvent("f108-test-1", "2026-09-10", "test", "Test 1", "F108", "Core reading test", undefined, 180, true),
+  makeEvent("f102-test-1", "2026-09-07", "test", "Class test 1", "F102", "Class test · chapters 1-17, chapter 19 section 2, chapters 20-24, and chapter 33", "Chapters 1-17 · Chapter 19 section 2 · Chapters 20-24 · Chapter 33", 180, true),
+  makeEvent("f108-test-1", "2026-09-10", "test", "Class test 1", "F108", "Class test · chapters 1-14, chapters 16-18, and chapter 20", "Chapters 1-14 · Chapters 16-18 · Chapter 20", 180, true),
   makeEvent("f102-test-2", "2026-09-30", "test", "Test 2", "F102", "September assessment · date to be confirmed", undefined, 180, true, false),
   makeEvent("f108-test-2", "2026-09-30", "test", "Test 2", "F108", "September assessment · date to be confirmed", undefined, 180, true, false),
-  makeEvent("f102-exam", "2026-11-16", "exam", "F102 exam", "F102", "Three-hour typed exam", undefined, 180, true),
-  makeEvent("f108-exam", "2026-11-05", "exam", "F108 exam", "F108", "Three-hour typed exam", undefined, 180, true),
+  makeEvent("f102-exam", "2026-11-05", "exam", "F102 exam", "F102", "Three-hour typed exam", undefined, 180, true),
+  makeEvent("f108-exam", "2026-11-16", "exam", "F108 exam", "F108", "Three-hour typed exam", undefined, 180, true),
   makeEvent("f108-assignment-1", "2026-07-23", "assignment", "Take-home assignment 1", "F108", "Completed", "Chapters 4-5", undefined, true),
   makeEvent("f102-assignment-1", "2026-08-03", "assignment", "Assignment 1", "F102", "Completed", "Chapters 4, 16, 17", undefined, true),
   makeEvent("f108-assignment-2", "2026-10-01", "assignment", "Take-home assignment 2", "F108", "Due alongside the lecture block", "Chapters 20, 22", undefined, true),
@@ -148,19 +153,32 @@ const immediateTasks: StudyTask[] = [
   makeTask("today-f108-catchup", "F108", "learn", "F108 catch-up: chapters 10-11", "2026-08-11", 75, "First pass only: understand the map, mark one uncertainty, and move on before annotations become a second textbook.", false, undefined, 2),
   makeTask("tomorrow-f102-recall", "F102", "recall", "F102: retrieve chapters 1-4 from memory", "2026-08-12", 30, "Close the notes first. Write the structure and key formulas, then check only what you missed."),
   makeTask("tomorrow-f108-checkpoint", "F108", "recall", "F108: write a five-minute chapter checkpoint", "2026-08-12", 25, "Capture key ideas, formulas or terms, one uncertainty, and one exam-style question."),
-];
+].map((task) => task.id === "today-f102-catchup"
+  ? { ...task, chapterRange: "Chapters 5-7" }
+  : task.id === "today-f108-catchup"
+    ? { ...task, chapterRange: "Chapters 10-11" }
+    : task);
 
 const pastPaperTasks: StudyTask[] = [
-  makeTask("f102-paper-1", "F102", "practice", "F102 past paper 1: timed attempt", "2026-11-02", 180, "Use an official ASSA paper. Attempt under exam conditions, mark it, and log only the top three errors.", false, undefined, 0, "F102 official past paper 1"),
-  makeTask("f102-paper-2", "F102", "practice", "F102 past paper 2: timed attempt", "2026-11-07", 180, "Attempt first, then mark with the official solutions or your notes. Record the topics that cost time.", false, undefined, 0, "F102 official past paper 2"),
-  makeTask("f102-paper-3", "F102", "practice", "F102 past paper 3: targeted re-attempt", "2026-11-12", 150, "Re-attempt the questions that were slow or wrong. Finish with a short confidence check.", false, undefined, 0, "F102 official past paper 3"),
-  makeTask("f108-paper-1", "F108", "practice", "F108 past paper 1: timed attempt", "2026-10-22", 180, "Use an official ASSA paper. Attempt, mark, and keep the errors that should become retrieval questions.", false, undefined, 0, "F108 official past paper 1"),
-  makeTask("f108-paper-2", "F108", "practice", "F108 past paper 2: timed attempt", "2026-10-29", 180, "Attempt under time pressure, then identify the two topics that deserve the next review block.", false, undefined, 0, "F108 official past paper 2"),
-  makeTask("f108-paper-3", "F108", "practice", "F108 past paper 3: final targeted paper", "2026-11-03", 150, "Keep this final paper focused: practise the weak areas and protect rest before exam day.", false, undefined, 0, "F108 official past paper 3"),
-];
+  makeTask("f102-paper-drill-1", "F102", "practice", "F102 older ASSA papers: question drill 1", "2026-08-24", 60, "Choose a question from any older paper in the official archive after the relevant chapter. Practise the answer shape, then log the error that should return later.", false, undefined, 0, "F102 older ASSA papers", false),
+  makeTask("f102-paper-drill-2", "F102", "practice", "F102 older ASSA papers: question drill 2", "2026-09-14", 60, "Use another older official paper as a chapter-linked question set. This is retrieval practice, not a full mock.", false, undefined, 0, "F102 older ASSA papers", false),
+  makeTask("f102-paper-drill-3", "F102", "practice", "F102 older ASSA papers: question drill 3", "2026-10-05", 60, "Work through another older-paper section and turn the top three misses into short recall prompts.", false, undefined, 0, "F102 older ASSA papers", false),
+  makeTask("f102-paper-1", "F102", "practice", "F102 recent ASSA paper: full 3-hour sit-down 1", "2026-10-19", 180, "Use one of the newest available official papers under exam conditions. Mark it afterwards and schedule the biggest errors for review.", false, undefined, 0, "F102 recent ASSA papers", false),
+  makeTask("f102-paper-2", "F102", "practice", "F102 recent ASSA paper: full 3-hour sit-down 2", "2026-10-27", 180, "Complete another recent paper as a complete three-hour sitting. Protect the final hour for marking and error capture later.", false, undefined, 0, "F102 recent ASSA papers", false),
+  makeTask("f102-paper-3", "F102", "practice", "F102 recent ASSA paper: final full 3-hour sit-down", "2026-11-02", 180, "Make this the last full mock before the 5 November exam. Review errors without starting a new topic marathon.", false, undefined, 0, "F102 recent ASSA papers", false),
+  makeTask("f108-paper-drill-1", "F108", "practice", "F108 older ASSA papers: question drill 1", "2026-08-27", 60, "Choose a question from an older F108, F101, or F104 archive paper after the relevant chapter. Practise the answer shape and record one gap.", false, undefined, 0, "F108 older ASSA papers", false),
+  makeTask("f108-paper-drill-2", "F108", "practice", "F108 older ASSA papers: question drill 2", "2026-09-17", 60, "Use another older official paper as a chapter-linked drill. Keep it short enough to support lecture and test readiness.", false, undefined, 0, "F108 older ASSA papers", false),
+  makeTask("f108-paper-drill-3", "F108", "practice", "F108 older ASSA papers: question drill 3", "2026-10-01", 60, "Work through another older-paper section and turn the top three misses into retrieval prompts.", false, undefined, 0, "F108 older ASSA papers", false),
+  makeTask("f108-paper-1", "F108", "practice", "F108 recent ASSA paper: full 3-hour sit-down 1", "2026-10-26", 180, "Use one of the newest available F108 papers under exam conditions. Mark it afterwards and carry the biggest errors into review.", false, undefined, 0, "F108 recent ASSA papers", false),
+  makeTask("f108-paper-2", "F108", "practice", "F108 recent ASSA paper: full 3-hour sit-down 2", "2026-11-04", 180, "Complete another recent paper as a complete three-hour sitting, then review the topics that cost time.", false, undefined, 0, "F108 recent ASSA papers", false),
+  makeTask("f108-paper-3", "F108", "practice", "F108 recent ASSA paper: final full 3-hour sit-down", "2026-11-10", 180, "Make this the last full mock before the 16 November exam. Finish by planning light recall and rest.", false, undefined, 0, "F108 recent ASSA papers", false),
+].map((task) => ({
+  ...task,
+  paperMode: task.paperName?.includes("older") ? "question-drill" : "timed-sit-down",
+}));
 
 export const seedState: AppState = {
-  version: 4,
+  version: 5,
   subjects,
   events: [...lectureEvents, ...fixedEvents, ...lecturePrepEvents],
   tasks: [...immediateTasks, ...createCalendarAlignedTasks([...lectureEvents, ...fixedEvents], subjects, CREATED_AT), ...pastPaperTasks].map((task) => ({

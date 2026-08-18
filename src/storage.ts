@@ -1,5 +1,5 @@
 import { createCalendarAlignedTasks, defaultImpact, phaseForKind } from "./planner";
-import type { AppState, ChapterCheckpoint, ChapterProgress, Flashcard, StudySession, StudyTask, TaskKind } from "./types";
+import type { AppState, ChapterCheckpoint, ChapterProgress, Flashcard, PaperMode, StudySession, StudyTask, TaskKind } from "./types";
 
 export const STORAGE_VERSION = 5;
 export const STORAGE_KEY = "stitchflow.app-state.v5";
@@ -14,6 +14,10 @@ function isSubjectCode(value: unknown): value is AppState["subjects"][number]["c
 
 function isTaskKind(value: unknown): value is TaskKind {
   return value === "learn" || value === "recall" || value === "practice" || value === "error-review" || value === "milestone";
+}
+
+function isPaperMode(value: unknown): value is PaperMode {
+  return value === "question-drill" || value === "timed-sit-down";
 }
 
 function normalizeTask(raw: Partial<StudyTask>): StudyTask | null {
@@ -33,8 +37,10 @@ function normalizeTask(raw: Partial<StudyTask>): StudyTask | null {
     phase: raw.phase ?? phaseForKind(kind),
     impact: raw.impact ?? defaultImpact(kind),
     coverageUnits: raw.coverageUnits ?? 0,
+    chapterRange: raw.chapterRange,
     paperName: raw.paperName,
     archived: raw.archived ?? false,
+    manuallyScheduled: raw.manuallyScheduled ?? false,
     sourceEventId: raw.sourceEventId,
     planningRole: raw.planningRole,
     fixed: raw.fixed ?? false,
@@ -42,6 +48,7 @@ function normalizeTask(raw: Partial<StudyTask>): StudyTask | null {
     lastCompletedAt: raw.lastCompletedAt,
     revisitDate: raw.revisitDate,
     confidence: raw.confidence,
+    paperMode: isPaperMode(raw.paperMode) ? raw.paperMode : undefined,
   };
 }
 
@@ -151,7 +158,7 @@ export function migrateState(value: unknown, seed: AppState): AppState | null {
   if (!Array.isArray(raw.subjects) || !Array.isArray(raw.events) || !Array.isArray(raw.tasks)) return null;
   const subjects = seed.subjects.map((subject) => {
     const saved = raw.subjects?.find((candidate) => candidate.code === subject.code && isSubjectCode(candidate.code));
-    return saved ? { ...saved, examDates: subject.examDates } : subject;
+    return saved ? { ...subject, ...saved, examDates: subject.examDates, syllabusChapterTotal: subject.syllabusChapterTotal, supplementalSections: subject.supplementalSections } : subject;
   });
   const sourceTasks = raw.tasks.filter((task) => isSubjectCode(task.subjectCode));
   const normalizedTasks = sourceTasks.map((task) => normalizeTask(task)).filter((task): task is StudyTask => Boolean(task));
@@ -171,10 +178,11 @@ export function migrateState(value: unknown, seed: AppState): AppState | null {
   const seedTasksById = new Map(seed.tasks.map((task) => [task.id, task]));
   const preservedTasks = normalizedTasks.map((task) => {
     const canonical = seedTasksById.get(task.id);
-    const merged = canonical ? { ...canonical, status: task.status, completionPercent: task.completionPercent, lastCompletedAt: task.lastCompletedAt, revisitDate: task.revisitDate, confidence: task.confidence } : task;
+    const merged = canonical ? { ...canonical, dueDate: task.manuallyScheduled ? task.dueDate : canonical.dueDate, manuallyScheduled: task.manuallyScheduled, status: task.status, completionPercent: task.completionPercent, lastCompletedAt: task.lastCompletedAt, revisitDate: task.revisitDate, confidence: task.confidence } : task;
     return checklistEventIds.has(task.sourceEventId ?? "") ? { ...merged, archived: true } : merged;
   });
   const existingTaskIds = new Set(preservedTasks.map((task) => task.id));
+  const missingSeedTasks = seed.tasks.filter((task) => !existingTaskIds.has(task.id));
   const calendarTasks = createCalendarAlignedTasks(events, subjects, updatedAt).filter((task) => !existingTaskIds.has(task.id));
   return {
     ...seed,
@@ -182,7 +190,7 @@ export function migrateState(value: unknown, seed: AppState): AppState | null {
     version: STORAGE_VERSION,
     subjects,
     events,
-    tasks: [...preservedTasks, ...calendarTasks],
+    tasks: [...preservedTasks, ...missingSeedTasks, ...calendarTasks],
     sessions,
     chapters: normalizeChapters(raw.chapters, seed, subjects, updatedAt),
     checkpoints: Array.isArray(raw.checkpoints)

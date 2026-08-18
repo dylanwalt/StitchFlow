@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seedState } from "../data";
-import { addDays, createCalendarAlignedTasks, daysUntil, getChapterMetrics, getSubjectProgress, getSubjectSummary, isTaskOverdue, lecturePrepDate, replanTasks, reviewInterval } from "../planner";
+import { addDays, createCalendarAlignedTasks, daysUntil, getChapterMetrics, getSubjectProgress, getSubjectSummary, isTaskOverdue, lecturePrepDate, replanTasks, reviewInterval, taskPriority } from "../planner";
 import { migrateState, parseImportedState } from "../storage";
 
 describe("planner utilities", () => {
@@ -14,8 +14,10 @@ describe("planner utilities", () => {
     expect(lecturePrepDate("2026-08-17")).toBe("2026-08-14");
     const tasks = createCalendarAlignedTasks(seedState.events, seedState.subjects, "2026-08-11T08:00:00+02:00");
     expect(tasks.find((task) => task.sourceEventId === "f108-aug-13" && task.planningRole === "lecture-prep")?.dueDate).toBe("2026-08-11");
+    expect(tasks.find((task) => task.sourceEventId === "f102-aug-20" && task.planningRole === "lecture-prep")?.dueDate).toBe("2026-08-18");
     expect(tasks.some((task) => task.sourceEventId === "f102-test-2")).toBe(false);
     expect(tasks.find((task) => task.sourceEventId === "f102-test-1" && task.title.includes("timed practice"))?.dueDate).toBe("2026-08-31");
+    expect(tasks.find((task) => task.sourceEventId === "f102-test-1" && task.title.includes("map"))?.detail).toContain("Chapters 1-17");
   });
 
   it("identifies the seeded F102 catch-up gap", () => {
@@ -85,10 +87,34 @@ describe("planner utilities", () => {
   it("keeps a practice runway in the final two weeks", () => {
     const f102PaperDates = seedState.tasks.filter((task) => task.paperName?.startsWith("F102")).map((task) => task.dueDate);
     const f108PaperDates = seedState.tasks.filter((task) => task.paperName?.startsWith("F108")).map((task) => task.dueDate);
-    expect(f102PaperDates).toEqual(["2026-11-02", "2026-11-07", "2026-11-12"]);
-    expect(f108PaperDates).toEqual(["2026-10-22", "2026-10-29", "2026-11-03"]);
-    expect(seedState.subjects.find((subject) => subject.code === "F102")?.examDates).toEqual(["2026-11-16"]);
-    expect(seedState.subjects.find((subject) => subject.code === "F108")?.examDates).toEqual(["2026-11-05"]);
+    expect(f102PaperDates).toEqual(["2026-08-24", "2026-09-14", "2026-10-05", "2026-10-19", "2026-10-27", "2026-11-02"]);
+    expect(f108PaperDates).toEqual(["2026-08-27", "2026-09-17", "2026-10-01", "2026-10-26", "2026-11-04", "2026-11-10"]);
+    expect(seedState.tasks.find((task) => task.id === "f102-paper-drill-1")?.paperMode).toBe("question-drill");
+    expect(seedState.tasks.find((task) => task.id === "f102-paper-1")?.paperMode).toBe("timed-sit-down");
+    expect(seedState.subjects.find((subject) => subject.code === "F102")?.examDates).toEqual(["2026-11-05"]);
+    expect(seedState.subjects.find((subject) => subject.code === "F108")?.examDates).toEqual(["2026-11-16"]);
+    for (const subject of seedState.subjects) {
+      expect(seedState.events.find((event) => event.id === `${subject.code.toLowerCase()}-exam`)?.date).toBe(subject.examDates[0]);
+    }
+  });
+
+  it("keeps the requested course-note structure separate from examinable chapter totals", () => {
+    const f102 = seedState.subjects.find((subject) => subject.code === "F102")!;
+    const f108 = seedState.subjects.find((subject) => subject.code === "F108")!;
+    expect(seedState.chapters.filter((chapter) => chapter.subjectCode === "F102")).toHaveLength(36);
+    expect(seedState.chapters.filter((chapter) => chapter.subjectCode === "F108")).toHaveLength(23);
+    expect(f102.supplementalSections).toEqual(["Glossary"]);
+    expect(f108.supplementalSections).toEqual(["Glossary", "Acronyms"]);
+  });
+
+  it("puts lecture preparation ahead of assessment and paper practice", () => {
+    const f102 = seedState.subjects.find((subject) => subject.code === "F102")!;
+    const lecturePrep = seedState.tasks.find((task) => task.id === "calendar-lecture-prep-f102-aug-20")!;
+    const testPrep = seedState.tasks.find((task) => task.id === "calendar-test-prep-f102-test-1-scope")!;
+    const paper = seedState.tasks.find((task) => task.id === "f102-paper-1")!;
+    expect(lecturePrep.planningRole).toBe("lecture-prep");
+    expect(taskPriority(lecturePrep, f102, "2026-08-18")).toBeGreaterThan(taskPriority(testPrep, f102, "2026-08-18"));
+    expect(taskPriority(testPrep, f102, "2026-08-18")).toBeGreaterThan(taskPriority(paper, f102, "2026-08-18"));
   });
 
   it("uses confidence to schedule a gentle next review", () => {
@@ -113,6 +139,17 @@ describe("planner utilities", () => {
     expect(parseImportedState(JSON.stringify(seedState), seedState)?.version).toBe(5);
     expect(migrated?.chapters.filter((chapter) => chapter.subjectCode === "F102")).toHaveLength(36);
     expect(migrated?.chapters.filter((chapter) => chapter.subjectCode === "F102" && chapter.readThrough)).toHaveLength(4);
+  });
+
+  it("keeps a student-adjusted task date while applying canonical schedule corrections", () => {
+    const saved = {
+      ...seedState,
+      version: 4,
+      tasks: seedState.tasks.map((task) => task.id === "f102-paper-1" ? { ...task, dueDate: "2026-09-01", manuallyScheduled: true } : task),
+    };
+    const migrated = migrateState(saved, seedState)!;
+    expect(migrated.tasks.find((task) => task.id === "f102-paper-1")?.dueDate).toBe("2026-09-01");
+    expect(migrated.subjects.find((subject) => subject.code === "F102")?.examDates).toEqual(["2026-11-05"]);
   });
 
   it("removes retired subject records while migrating saved state", () => {

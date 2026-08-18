@@ -630,6 +630,22 @@ h2 { font-size: 24px; }
 .legacy-source-row { display: flex; flex-wrap: wrap; gap: 7px 12px; margin-top: 13px; color: #82919d; font-size: 10px; }
 .legacy-source-row span { color: #617886; font-weight: 700; }
 
+.paper-strategy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .9fr); gap: 16px; margin-top: 15px; padding: 15px; border: 1px solid #d6e7e5; border-radius: 12px; background: rgba(255, 255, 255, .72); }
+.paper-strategy h4 { margin: 3px 0 5px; color: #31586d; font-size: 15px; }
+.paper-strategy p { margin: 0; color: #6c808b; font-size: 12px; line-height: 1.5; }
+.paper-strategy ol { display: grid; gap: 7px; margin: 0; padding-left: 21px; color: #5d7580; font-size: 11px; line-height: 1.45; }
+.course-notes-card { margin-top: 15px; background: linear-gradient(135deg, #f8fffb 0%, #fffdf5 100%); }
+.course-note-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+.course-note-tags span { padding: 6px 8px; border-radius: 7px; color: #3f756f; background: #e5f5ee; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; }
+.assessment-runway { margin-top: 15px; padding: 19px; border: 1px solid #d9e5e6; border-radius: 16px; background: #fbfdfc; box-shadow: var(--shadow-soft); }
+.assessment-list { display: grid; gap: 8px; margin-top: 13px; }
+.assessment-item { display: grid; gap: 4px; padding: 11px 12px; border-left: 3px solid #e0a126; border-radius: 9px; background: #fffaf0; }
+.assessment-item.exam { border-left-color: #9e5e9a; background: #fcf7fc; }
+.assessment-item > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.assessment-item strong { color: #31586d; font-size: 13px; }
+.assessment-item span { color: #83929b; font-family: 'DM Mono', monospace; font-size: 10px; text-align: right; }
+.assessment-item p { margin: 0; color: #697d87; font-size: 11px; line-height: 1.4; }
+
 /* Chapter tracking and honest partial progress */
 .chapter-tracker { margin-top: 15px; padding: 21px; border: 1px solid #cfe1e2; border-radius: 17px; background: linear-gradient(135deg, #f5fcfb 0%, #f7faff 100%); box-shadow: var(--shadow-soft); }
 .chapter-tracker-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
@@ -746,4 +762,7 @@ h2 { font-size: 24px; }
   .chapter-check { flex: 1; justify-content: center; min-width: 80px; }
   .plan-bucket-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
   .plan-bucket-heading small { max-width: none; text-align: left; }
+  .paper-strategy { grid-template-columns: 1fr; }
+  .assessment-item > div { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .assessment-item span { text-align: left; }
 }

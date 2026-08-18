@@ -16,6 +16,7 @@ export type SessionKind = "focus" | "past-paper";
 export type ChapterCheck = "readThrough" | "summarized" | "confident" | "reviewed";
 export type ScheduleStatus = "ahead" | "on-track" | "behind";
 export type PlanningRole = "lecture-prep" | "assessment-prep";
+export type PaperMode = "question-drill" | "timed-sit-down";
 
 export interface TaskImpact {
   coverage: number;
@@ -41,7 +42,9 @@ export interface Subject {
   examDurationMinutes: number;
   currentChapter: number;
   targetChapter: number;
+  syllabusChapterTotal: number;
   chapterLabel: string;
+  supplementalSections: string[];
   description: string;
   progressNote: string;
 }
@@ -73,8 +76,10 @@ export interface StudyTask {
   phase: StudyPhase;
   impact: TaskImpact;
   coverageUnits?: number;
+  chapterRange?: string;
   paperName?: string;
   archived?: boolean;
+  manuallyScheduled?: boolean;
   sourceEventId?: string;
   planningRole?: PlanningRole;
   fixed?: boolean;
@@ -82,6 +87,7 @@ export interface StudyTask {
   lastCompletedAt?: string;
   revisitDate?: string;
   confidence?: Confidence;
+  paperMode?: PaperMode;
 }
 
 export interface StudySession {

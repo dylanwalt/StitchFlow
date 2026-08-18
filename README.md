@@ -35,7 +35,9 @@ The app is intentionally static. Seed data ships with the repository, while prog
 
 There is no Supabase connection, authentication, analytics, server API, or database credential.
 
-The browser state is versioned and migrates the original starter format safely, including the initial F102/F108 chapter progress and the corrected exam dates. Export a JSON backup before changing browsers; this is intentionally local to the current browser and does not sync between devices.
+The browser state is versioned and migrates the original starter format safely, including the initial F102/F108 chapter progress, the canonical F102 (5 November 2026) and F108 (16 November 2026) exam dates, and the course-note reference sections. Export a JSON backup before changing browsers; this is intentionally local to the current browser and does not sync between devices.
+
+Lecture readiness is ranked ahead of assessment preparation. ASSA paper work is split into short question drills from older archive papers and full three-hour sittings for newer papers, with the official archive links kept as the source of truth for using every available paper.
 
 ## GitHub Pages
 

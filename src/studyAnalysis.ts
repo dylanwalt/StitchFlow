@@ -9,6 +9,7 @@ export interface StudyInsight {
   focus: string;
   examinerTrap: string;
   questionPrompts: string[];
+  questionSources?: string[];
   sourceLabel: string;
   sourceUrl: string;
 }
@@ -18,6 +19,11 @@ export interface SubjectStudyAnalysis {
   title: string;
   summary: string;
   sourceNote: string;
+  paperStrategy: {
+    title: string;
+    detail: string;
+    steps: string[];
+  };
   sourceUrl: string;
   sourceLinks: Array<{ label: string; url: string }>;
   insights: StudyInsight[];
@@ -43,6 +49,11 @@ export const studyAnalysis: Record<SubjectCode, SubjectStudyAnalysis> = {
     title: "F102 exam lens",
     summary: "Use the paper as a signal for how broad principles are turned into applied, scenario-led questions.",
     sourceNote: "Curated from the ASSA past-paper index and the F102 November 2025 paper. Add the course-note page numbers when they are available.",
+    paperStrategy: {
+      title: "Use the full F102 archive in two passes",
+      detail: "Keep older papers moving alongside chapter work, then reserve the newest available papers for complete three-hour rehearsals before the exam.",
+      steps: ["Older papers: choose individual questions after the matching chapter and record the top errors.", "Newer papers: complete the whole paper in one three-hour sitting, then mark it and schedule only the highest-value fixes.", "Use the linked semester archives as the source of truth so no available paper is silently skipped."],
+    },
     sourceUrl: ASSA_PAST_PAPERS_URL,
     sourceLinks: [
       { label: "F102 semester 1 paper archive", url: F102_S1_PAPERS_URL },
@@ -117,6 +128,11 @@ export const studyAnalysis: Record<SubjectCode, SubjectStudyAnalysis> = {
     title: "F108 exam lens",
     summary: "F108 combines the former F101 and F104 material, so practise both health/benefit applications and retirement/funding reasoning.",
     sourceNote: "Curated from ASSA's F108 June 2026 examiner report, with the F101 June 2024 and F104 November 2023 reports retained as transition evidence.",
+    paperStrategy: {
+      title: "Use current F108 plus legacy F101/F104 papers deliberately",
+      detail: "Work through older F108, F101, and F104 questions as chapter-linked drills, then use the newest F108 papers for full three-hour rehearsals before the 16 November exam.",
+      steps: ["Older papers: use short question drills after lecture blocks, including relevant legacy F101/F104 material.", "Newer F108 papers: keep these untouched for complete three-hour sit-downs and careful marking.", "The archive links below are the complete available-paper route; legacy material is labelled as transition evidence, not current F108 syllabus coverage."],
+    },
     sourceUrl: ASSA_PAST_PAPERS_URL,
     sourceLinks: [
       { label: "F108 semester 1 paper archive", url: F108_S1_PAPERS_URL },
@@ -135,6 +151,7 @@ export const studyAnalysis: Record<SubjectCode, SubjectStudyAnalysis> = {
         focus: "Social security, employer roles, taxation/EET, regulation, and financial reporting.",
         examinerTrap: "State the context and the party affected. Broad comments about a report or employer can miss the specific social-security or fund question.",
         questionPrompts: ["F108 J2026 report · Q1: use EET and reporting specifics", "F104 N2023 report · Q5: apply bookwork to a two-country scenario"],
+        questionSources: [F108_2026_REPORT_URL, F104_2023_REPORT_URL],
         sourceLabel: "F108 J2026 · Q1; F104 N2023 · Q5",
         sourceUrl: F108_2026_REPORT_URL,
       },
@@ -155,6 +172,7 @@ export const studyAnalysis: Record<SubjectCode, SubjectStudyAnalysis> = {
         focus: "Critical-illness definitions, data availability, group versus individual cover, morbidity, utilisation, and reserving.",
         examinerTrap: "Keep treatment cover, lump-sum cover, and group cover distinct. Show workings and apply any monthly, utilisation, or adjustment information given.",
         questionPrompts: ["F108 J2026 report · Q4–5: define conditions and reserve group cover", "F101 J2024 report: practise health-and-care application questions"],
+        questionSources: [F108_2026_REPORT_URL, F101_2024_REPORT_URL],
         sourceLabel: "F108 J2026 · Q4–5; F101 J2024",
         sourceUrl: F108_2026_REPORT_URL,
       },
@@ -165,6 +183,7 @@ export const studyAnalysis: Record<SubjectCode, SubjectStudyAnalysis> = {
         focus: "Investment strategy, matching, risk, and how asset choices affect benefit security or surplus.",
         examinerTrap: "Explain why an asset is suitable for the liability; naming asset classes without linking them to term, risk, or cash flow is too thin.",
         questionPrompts: ["F104 N2023 report · Q3: establish an ALM process", "F108 J2026 report · Q3: relate liability term to investment strategy"],
+        questionSources: [F104_2023_REPORT_URL, F108_2026_REPORT_URL],
         sourceLabel: "F108 J2026 · Q3; F104 N2023 · Q3",
         sourceUrl: F108_2026_REPORT_URL,
       },
@@ -190,4 +209,8 @@ export const legacyF108Sources = [
 export function getDailyStudyInsight(subjectCode: SubjectCode): StudyInsight {
   const insights = studyAnalysis[subjectCode].insights;
   return insights.find((insight) => insight.priority === "high") ?? insights[0];
+}
+
+export function getInsightQuestionSource(insight: StudyInsight, index: number): string {
+  return insight.questionSources?.[index] ?? insight.sourceUrl;
 }

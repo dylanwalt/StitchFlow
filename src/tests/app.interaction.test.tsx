@@ -24,16 +24,17 @@ describe("study cockpit interactions", () => {
   });
 
   it("completes a task and persists its revisit date", async () => {
-    window.location.hash = "dashboard";
+    window.location.hash = "plan";
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Complete F102 catch-up: chapters 5-7" }));
     await waitFor(() => expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.status).toBe("done"));
     expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.revisitDate).toBe(addDays(toISODate(new Date()), 2));
+    expect(readSavedState().chapters.find((chapter) => chapter.subjectCode === "F102" && chapter.chapterNumber === 5)?.readThrough).toBe(true);
     expect(screen.getByRole("status")).toHaveTextContent("Task updated");
   });
 
   it("snoozes work without changing another subject", async () => {
-    window.location.hash = "dashboard";
+    window.location.hash = "plan";
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Snooze F102 catch-up: chapters 5-7" }));
     await waitFor(() => expect(readSavedState().tasks.find((task) => task.id === "today-f102-catchup")?.status).toBe("snoozed"));
@@ -53,7 +54,7 @@ describe("study cockpit interactions", () => {
   it("surfaces a daily exam lens on the plan", () => {
     window.location.hash = "plan";
     render(<App />);
-    expect(screen.getByRole("heading", { name: /F102/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /F10[28]/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Daily exam lens")).toBeInTheDocument();
     expect(screen.getByText(/Curated priority signal/i)).toBeInTheDocument();
   });
@@ -130,5 +131,29 @@ describe("study cockpit interactions", () => {
     expect(screen.getByRole("link", { name: /Open ASSA index/ })).toHaveAttribute("href", "https://www.actuarialsociety.org.za/document-category/past-paper/");
     expect(screen.getByText("Official source pack")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /F102 semester 1 paper archive/ })).toHaveAttribute("href", "https://www.actuarialsociety.org.za/document-category/semester-1-f102-life-insurance-fellowship-principles/");
+  });
+
+  it("surfaces the corrected milestone dates, scopes, and course-note sections", () => {
+    window.location.hash = "dashboard";
+    render(<App />);
+    expect(screen.getByText(/F102 · Class test 1/)).toBeInTheDocument();
+    expect(screen.getByText(/Chapters 1-17 · Chapter 19 section 2/)).toBeInTheDocument();
+    expect(screen.getByText(/F108 · Class test 1/)).toBeInTheDocument();
+    expect(screen.getByText(/Chapters 1-14 · Chapters 16-18/)).toBeInTheDocument();
+    expect(screen.getByText(/F102 · F102 exam/)).toBeInTheDocument();
+    expect(screen.getByText(/F108 · F108 exam/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Subjects" }));
+    expect(screen.getByText("36 chapters + reference sections")).toBeInTheDocument();
+    expect(screen.getByText("Glossary")).toBeInTheDocument();
+  });
+
+  it("shows the lecture-first and old-versus-new paper policy in the plan", () => {
+    window.location.hash = "plan";
+    render(<App />);
+    expect(screen.getByText(/lecture readiness → tests and exams → past papers/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Subjects" }));
+    expect(screen.getByText(/Older papers: choose individual questions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Use the full F102 archive in two passes/i)).toBeInTheDocument();
   });
 });
